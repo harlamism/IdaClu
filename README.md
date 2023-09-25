@@ -68,7 +68,7 @@ Here's the breakdown of main widgets:
 1. ***Toolkit*** - scrollable area with buttons for recognized ***IDAPython*** scripts
 2. ***View*** - table-based view for script output, function selection, and rendering current labels
 3. ***Filters*** - input controls to refine the chosen script's focus
-4. ***Labels*** - name for *prefix* or *folder* for selected functions
+4. ***Labels*** - name of *prefix* or *folder* for selected functions
    - ***R*** - toggle button for recursive mode
    - ***PREFIX*** - interactive label to switch between *FOLDER* and *PREFIX* labeling modes
    - ***ADD*** - button that applies labeling settings
@@ -96,16 +96,16 @@ While the plugin itself doesn't need external packages, some *sub-plugin scripts
 
 Two bundled ***Function Similarity*** section scripts require ***py-tlsh*** and ***ssdeep***. Follow these instructions if you need these scripts:
 
-```bat
+```bash
 > pip install py-tlsh
 
-:: do not: pip install ssdeep
+# do not: pip install ssdeep
 > git clone https://github.com/MacDue/ssdeep-windows-32_64
 > cd ssdeep-windows-32_64-master
 > python setup.py install
 ```
 
-### Tips
+### Hint
 
 For continuous updates, clone the repository with ***Git*** and create a ***symlink*** in the ***IDA*** plugin folder:
 
@@ -176,9 +176,10 @@ If the script logic depends on specific IDA configuration, the ***IdaClu*** plug
 - feat_microcode_new
 - feat_python3
 - feat_undo
+  ...
 ```
 
-Before script execution, these fields are guaranteed to be initialized with values.  
+Before script execution, these fields are guaranteed to be initialized.  
 You can refer to the full list in the ***output window*** of ***IDA***. Right under the ***banner*** there will be ***ENVIRONMENT*** section with the dump of current values.
 
 ### Custom Input
@@ -277,7 +278,7 @@ They will be carefully considered and their implementation are highly likely to 
 ## Known bugs
 
 - Minor issues with cross-compatibility
-- Comment column remains unhidden with empty coomments
+- Comment column remains unhidden with empty comments
 - Some bundled plugins produce quite dirty output:
   - *Global Variable Analysis*
 - Some scripts and their corresponding groups do not match

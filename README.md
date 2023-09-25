@@ -277,8 +277,12 @@ They will be carefully considered and their implementation are highly likely to 
 - Comment column remains unhidden with empty coomments
 - Some bundled plugins produce quite dirty output:
   - *Global Variable Analysis*
-- Some scripts and their groups do not match
-
+- Some scripts and their corresponding groups do not match
+- Experimental "Code Coverage" plugin fails to load
+- Explicit folder filtering with `"/"` as a parameter does not work as expected
+- Labels are still present in filters after being removed from .idb
+- In recursive mode the function can be prefixed multiple times
+- Recursive mode is not considered while highlighting with color
 
 ## Acknowledgements
 

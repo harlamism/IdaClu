@@ -108,7 +108,7 @@ class Ui_PluginDialog(object):
         PluginDialog.resize(911, 449)
 
         icon = qt_shims.get_QIcon()()
-        icon.addFile(":/idaclu/puzzle-piece.png", qt_shims.get_QSize()(), qt_shims.get_QIcon().Normal, qt_shims.get_QIcon().Off)
+        icon.addFile(":/idaclu/icon_64.png", qt_shims.get_QSize()(), qt_shims.get_QIcon().Normal, qt_shims.get_QIcon().Off)
         PluginDialog.setWindowIcon(icon)
 
         self.PluginAdapter = qt_shims.get_QHBoxLayout()(PluginDialog)

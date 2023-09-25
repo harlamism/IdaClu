@@ -186,7 +186,7 @@ class IdaCluForm(PluginForm):
     def __init__(self, env_desc):
         super(IdaCluForm, self).__init__()
         self.env_desc = env_desc
-        self.icon = qt_shims.get_QIcon()(':/idaclu/puzzle-piece.png')
+        self.icon = qt_shims.get_QIcon()(':/idaclu/icon_64.png')
         self.qss = os.path.join(SCRIPT_DIR, 'idaclu', 'assets', 'style.qss')
 
     def OnCreate(self, form):

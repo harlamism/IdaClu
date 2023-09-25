@@ -498,7 +498,7 @@ class IdaCluDialog(qt_shims.get_QWidget()):
         ix = self.ui.ResultsView.indexAt(point)
         if ix.column() == 0:
             menu = qt_shims.get_QMenu()()
-            menu.addAction(qt_shims.get_QIcon()(':/idaclu/puzzle-piece.png'), "Rename")
+            menu.addAction(qt_shims.get_QIcon()(':/idaclu/icon_64.png'), "Rename")
             action = menu.exec_(self.ui.ResultsView.mapToGlobal(point))
             if action:
                 if action.text() == "Rename":

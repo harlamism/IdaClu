@@ -1,8 +1,8 @@
 <!DOCTYPE RCC>
 <RCC version="1.0">
 	<qresource prefix="/idaclu">
-		<file>puzzle-piece.png</file>
-		<file>arrow-204-32.png</file>
+		<file>icon_64.png</file>
+		<file>arrow_32.png</file>
 		<file>style.qss</file>
 	</qresource>
 </RCC>

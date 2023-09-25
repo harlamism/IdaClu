@@ -8,6 +8,8 @@
 
 The distinctive feature of the plugin lies in ***"how"*** of search and labeling.
 
+***IdaClu*** won ***1st*** place in [***the Hex-Rays Plugin Contest 2023***](https://hex-rays.com/contests_details/contest2023/) !
+
 ![shot](./img/shot.png)
 
 ## The Purpose

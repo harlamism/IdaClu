@@ -85,7 +85,10 @@ Here's the breakdown of main widgets:
 
 ## Setup
 
-***IdaClu*** is an ***IDAPython*** plugin without external package dependencies. It can be installed by downloading the repository and copying file ***idaclu.py*** and folder ***idaclu*** to your ***IDA Pro*** plugin directory. No building is required.
+***IdaClu*** is an ***IDAPython*** plugin without external package dependencies. No building is required. It can be installed by downloading the repository and copying file ***idaclu.py*** and folder ***idaclu*** to your ***IDA Pro*** plugin directory *(either-or)*:
+
+- *C:\Program Files\IDA Pro \<IDA_VERSION\>\plugins*
+- *C:\Users\\<USER_NAME\>\AppData\Roaming\Hex-Rays\IDA Pro\plugins*
 
 While the plugin itself doesn't need external packages, some *sub-plugin scripts* might. This won't prevent the plugin from running, but it will gray out the corresponding buttons with an informative tooltip - what's missing.
 

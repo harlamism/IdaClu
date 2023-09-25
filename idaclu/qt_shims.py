@@ -15,11 +15,9 @@ except ImportError:
 
 def get_QtCore():
     if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        # IDA 6.8 and below
         import PySide.QtCore as QtCore
         return QtCore
     else:
-        # IDA 6.9
         import PyQt5.QtCore as QtCore
         return QtCore
 
@@ -133,14 +131,14 @@ def get_QSplitter():
     else:
         import PyQt5.QtWidgets as QtWidgets
         return QtWidgets.QSplitter
-        
+
 def get_QStandardItem():
     if is_ida and idaapi.IDA_SDK_VERSION <= 680:
         import PySide.QtGui as QtGui
         return QtGui.QStandardItem
     else:
         import PyQt5.QtGui as QtGui
-        return QtGui.QStandardItem    
+        return QtGui.QStandardItem
 
 def get_QEvent():
     if is_ida and idaapi.IDA_SDK_VERSION <= 680:
@@ -156,7 +154,7 @@ def get_QStyleFactory():
         return QtGui.QStyleFactory
     else:
         import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QStyleFactory 
+        return QtWidgets.QStyleFactory
 
 def get_QStyleOptionSlider():
     if is_ida and idaapi.IDA_SDK_VERSION <= 680:
@@ -164,7 +162,7 @@ def get_QStyleOptionSlider():
         return QtGui.QStyleOptionSlider
     else:
         import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QStyleOptionSlider 
+        return QtWidgets.QStyleOptionSlider
 
 def get_QApplication():
     if is_ida and idaapi.IDA_SDK_VERSION <= 680:
@@ -172,7 +170,7 @@ def get_QApplication():
         return QtGui.QApplication
     else:
         import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QApplication 
+        return QtWidgets.QApplication
 
 def get_QPainter():
     if is_ida and idaapi.IDA_SDK_VERSION <= 680:
@@ -180,7 +178,7 @@ def get_QPainter():
         return QtGui.QPainter
     else:
         import PyQt5.QtGui as QtGui
-        return QtGui.QPainter 
+        return QtGui.QPainter
 
 def get_DescendingOrder():
     if is_ida and idaapi.IDA_SDK_VERSION <= 680:
@@ -196,7 +194,7 @@ def get_QTabWidget():
         return QtGui.QTabWidget
     else:
         import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QTabWidget 
+        return QtWidgets.QTabWidget
 
 def get_QStyle():
     if is_ida and idaapi.IDA_SDK_VERSION <= 680:
@@ -204,7 +202,7 @@ def get_QStyle():
         return QtGui.QStyle
     else:
         import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QStyle 
+        return QtWidgets.QStyle
 
 def get_QLabel():
     if is_ida and idaapi.IDA_SDK_VERSION <= 680:
@@ -253,14 +251,6 @@ def get_QTableWidget():
     else:
         import PyQt5.QtWidgets as QtWidgets
         return QtWidgets.QTableWidget
-
-def get_QTableWidgetItem():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QTableWidgetItem
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QTableWidgetItem
 
 def get_QPushButton():
     if is_ida and idaapi.IDA_SDK_VERSION <= 680:
@@ -395,7 +385,7 @@ def get_QTreeView():
         return QtGui.QTreeView
     else:
         import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QTreeView  
+        return QtWidgets.QTreeView
 
 def get_QAction():
     if is_ida and idaapi.IDA_SDK_VERSION <= 680:
@@ -404,14 +394,6 @@ def get_QAction():
     else:
         import PyQt5.QtWidgets as QtWidgets
         return QtWidgets.QAction
-
-def get_QAction():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QMenu
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QMenu
 
 def get_QBrush():
     if is_ida and idaapi.IDA_SDK_VERSION <= 680:
@@ -491,7 +473,7 @@ def get_QModelIndex():
         return QtCore.QModelIndex
     else:
         import PyQt5.QtCore as QtCore
-        return QtCore.QModelIndex  
+        return QtCore.QModelIndex
 
 def get_QStyleOptionComboBox():
     if is_ida and idaapi.IDA_SDK_VERSION <= 680:
@@ -499,7 +481,7 @@ def get_QStyleOptionComboBox():
         return QtGui.QStyleOptionComboBox
     else:
         import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QStyleOptionComboBox 
+        return QtWidgets.QStyleOptionComboBox
 
 def get_QStyledItemDelegate():
     if is_ida and idaapi.IDA_SDK_VERSION <= 680:
@@ -507,7 +489,7 @@ def get_QStyledItemDelegate():
         return QtGui.QStyledItemDelegate
     else:
         import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QStyledItemDelegate 
+        return QtWidgets.QStyledItemDelegate
 
 def get_QFont():
     if is_ida and idaapi.IDA_SDK_VERSION <= 680:
@@ -515,7 +497,7 @@ def get_QFont():
         return QtGui.QFont
     else:
         import PyQt5.QtGui as QtGui
-        return QtGui.QFont 
+        return QtGui.QFont
 
 def get_QRect():
     if is_ida and idaapi.IDA_SDK_VERSION <= 680:
@@ -523,7 +505,7 @@ def get_QRect():
         return QtCore.QRect
     else:
         import PyQt5.QtCore as QtCore
-        return QtCore.QRect 
+        return QtCore.QRect
 
 def get_QSpacerItem():
     if is_ida and idaapi.IDA_SDK_VERSION <= 680:
@@ -531,7 +513,7 @@ def get_QSpacerItem():
         return QtGui.QSpacerItem
     else:
         import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QSpacerItem 
+        return QtWidgets.QSpacerItem
 
 def get_QMetaObject():
     if is_ida and idaapi.IDA_SDK_VERSION <= 680:
@@ -539,7 +521,7 @@ def get_QMetaObject():
         return QtCore.QMetaObject
     else:
         import PyQt5.QtCore as QtCore
-        return QtCore.QMetaObject 
+        return QtCore.QMetaObject
 
 def get_QCoreApplication():
     if is_ida and idaapi.IDA_SDK_VERSION <= 680:
@@ -547,4 +529,4 @@ def get_QCoreApplication():
         return QtCore.QCoreApplication
     else:
         import PyQt5.QtCore as QtCore
-        return QtCore.QCoreApplication 
+        return QtCore.QCoreApplication

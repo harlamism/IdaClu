@@ -1,4 +1,9 @@
-from . import qt_shims
+from idaclu.qt_shims import (
+    QAbstractItemModel,
+    QColor,
+    QModelIndex,
+    Qt
+)
 
 
 class ResultNode(object):
@@ -47,7 +52,7 @@ class ResultNode(object):
         return True
 
 
-class ResultModel(qt_shims.get_QAbstractItemModel()):
+class ResultModel(QAbstractItemModel):
 
     def __init__(self, heads, nodes, env_desc):
         super(ResultModel, self).__init__()
@@ -74,73 +79,73 @@ class ResultModel(qt_shims.get_QAbstractItemModel()):
         else:
             parent = _parent.internalPointer()
 
-        if not qt_shims.get_QAbstractItemModel().hasIndex(self, row, column, _parent):
-            return qt_shims.get_QModelIndex()()
+        if not QAbstractItemModel.hasIndex(self, row, column, _parent):
+            return QModelIndex()
 
         child = parent.child(row)
         if child:
-            return qt_shims.get_QAbstractItemModel().createIndex(self, row, column, child)
+            return QAbstractItemModel.createIndex(self, row, column, child)
         else:
-            return qt_shims.get_QModelIndex()()
+            return QModelIndex()
 
     def parent(self, index):
         if index.isValid():
             p = index.internalPointer().parent()
             if p:
-                return qt_shims.get_QAbstractItemModel().createIndex(self, p.row(), 0, p)
-        return qt_shims.get_QModelIndex()()
+                return QAbstractItemModel.createIndex(self, p.row(), 0, p)
+        return QModelIndex()
 
     def columnCount(self, index):
         if index.isValid():
             return index.internalPointer().columnCount()
         return self._root.columnCount()
 
-    def data(self, index, role=qt_shims.get_Qt().DisplayRole):
+    def data(self, index, role=Qt.DisplayRole):
         if not index.isValid():
             return None
         node = index.internalPointer()
-        if role == qt_shims.get_Qt().DisplayRole:
+        if role == Qt.DisplayRole:
             return node.data(index.column())
 
-        elif role == qt_shims.get_Qt().BackgroundRole:
+        elif role == Qt.BackgroundRole:
             node = index.internalPointer()
             rgb_string = node.data(8)
             if rgb_string and rgb_string != 'rgb(255,255,255)':
                 rgb_values = rgb_string.replace("rgb(", "").replace(")", "")
                 r, g, b = tuple(map(int, rgb_values.split(",")))
-                return qt_shims.get_QColor()(r, g, b)
+                return QColor(r, g, b)
         return None
 
-    def setHeaderData(self, section, orientation, value, role=qt_shims.get_Qt().EditRole):
-        if role != qt_shims.get_Qt().EditRole or orientation != qt_shims.get_Qt().Horizontal:
+    def setHeaderData(self, section, orientation, value, role=Qt.EditRole):
+        if role != Qt.EditRole or orientation != Qt.Horizontal:
             return False
         result = self._root.setData(section, value)
         if result:
             self.headerDataChanged.emit(orientation, section, section)
         return result
 
-    def headerData(self, section, orientation, role=qt_shims.get_Qt().DisplayRole):
-        if orientation == qt_shims.get_Qt().Horizontal and role == qt_shims.get_Qt().DisplayRole:
+    def headerData(self, section, orientation, role=Qt.DisplayRole):
+        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             return self._root.data(section)
         return None
 
     def flags(self, index):
-        return qt_shims.get_Qt().ItemIsSelectable|qt_shims.get_Qt().ItemIsEnabled|qt_shims.get_Qt().ItemIsEditable
+        return Qt.ItemIsSelectable|Qt.ItemIsEnabled|Qt.ItemIsEditable
 
-    def setData(self, index, value, role=qt_shims.get_Qt().EditRole):
+    def setData(self, index, value, role=Qt.EditRole):
         if not index.isValid():
             return False
         node = index.internalPointer()
-        if role == qt_shims.get_Qt().EditRole:
+        if role == Qt.EditRole:
             col = 1 if value.startswith('/') else 0
             col = 8 if value.startswith('rgb') else col
             result = node.setData(col, value)
             if result:
                 if self.env_desc.lib_qt == 'pyqt5':
-                    self.dataChanged.emit(index.sibling(index.row(), col), index.sibling(index.row(), col), [qt_shims.get_Qt().EditRole])
+                    self.dataChanged.emit(index.sibling(index.row(), col), index.sibling(index.row(), col), [Qt.EditRole])
                 elif self.env_desc.lib_qt == 'pyside':
                     self.dataChanged.emit(index.sibling(index.row(), col), index.sibling(index.row(), col))
             if col == 8:
-                self.dataChanged.emit(index.sibling(index.row(), 0), index.sibling(index.row(), 7), [qt_shims.get_Qt().BackgroundRole])
+                self.dataChanged.emit(index.sibling(index.row(), 0), index.sibling(index.row(), 7), [Qt.BackgroundRole])
             return True
         return False

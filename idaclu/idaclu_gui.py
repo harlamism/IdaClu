@@ -10,7 +10,22 @@ import idaapi
 import idautils
 #
 from idaclu import ida_shims
-from idaclu import qt_shims
+from idaclu.qt_shims import (
+    QCoreApplication,
+    QCursor,
+    Qt,
+    QFrame,
+    QIcon,
+    QLineEdit,
+    QMenu,
+    QPushButton,
+    QSize,
+    QSizePolicy,
+    QSpacerItem,
+    QStyledItemDelegate,
+    QVBoxLayout,
+    QWidget
+)
 from idaclu import ida_utils
 from idaclu import plg_utils
 from idaclu.ui_idaclu import Ui_PluginDialog
@@ -25,9 +40,9 @@ except ImportError:
     pass
 
 
-class AppendTextEditDelegate(qt_shims.get_QStyledItemDelegate()):
+class AppendTextEditDelegate(QStyledItemDelegate):
     def createEditor(self, parent, option, index):
-        editor = qt_shims.get_QLineEdit()(parent)
+        editor = QLineEdit(parent)
         return editor
 
     def setEditorData(self, editor, index):
@@ -43,7 +58,7 @@ class AppendTextEditDelegate(qt_shims.get_QStyledItemDelegate()):
         ida_shims.set_name(func_addr, new_text, idaapi.SN_NOWARN)
 
 
-class IdaCluDialog(qt_shims.get_QWidget()):
+class IdaCluDialog(QWidget):
     def __init__(self, env_desc):
         super(IdaCluDialog, self).__init__()
         self.env_desc = env_desc
@@ -170,7 +185,7 @@ class IdaCluDialog(qt_shims.get_QWidget()):
             self.ui.FolderFilter.setParent(None)
             # graceful degradation -
             # button does not appear as clickable
-            self.ui.NameToggle.setCursor(qt_shims.get_QCursor()(qt_shims.get_Qt().ArrowCursor))
+            self.ui.NameToggle.setCursor(QCursor(Qt.ArrowCursor))
             self.ui.NameToggle.setProperty('class','tool-btn edit-head')
             layout = self.ui.FiltersAdapter
             item = layout.takeAt(0)
@@ -222,7 +237,7 @@ class IdaCluDialog(qt_shims.get_QWidget()):
 
         plug_params = {}
         if self.option_sender != None:
-            widget = self.ui.ScriptsArea.findChild(qt_shims.get_QPushButton(), self.option_sender)
+            widget = self.ui.ScriptsArea.findChild(QPushButton, self.option_sender)
             parent_layout = widget.parent().layout()
 
             if self.option_sender == full_spec_name:
@@ -230,18 +245,18 @@ class IdaCluDialog(qt_shims.get_QWidget()):
                     sub_item = parent_layout.itemAt(i)
                     if sub_item:
                         sub_widget = sub_item.widget()
-                        if sub_widget and (isinstance(sub_widget, qt_shims.get_QLineEdit())):
+                        if sub_widget and (isinstance(sub_widget, QLineEdit)):
                             param_name = sub_widget.objectName().replace("{}__".format(full_spec_name), "")
                             plug_params[param_name] = sub_widget.text()  # .toPlainText()
 
             for i in range(parent_layout.count()):
                 sub_item = parent_layout.itemAt(i)
                 if sub_item:
-                    if isinstance(sub_item, qt_shims.get_QSpacerItem()):
+                    if isinstance(sub_item, QSpacerItem):
                         parent_layout.removeItem(sub_item)
                         continue
                     sub_widget = sub_item.widget()
-                    if sub_widget and (isinstance(sub_widget, qt_shims.get_QLineEdit())):
+                    if sub_widget and (isinstance(sub_widget, QLineEdit)):
                         parent_layout.removeWidget(sub_widget)
                         sub_widget.setParent(None)
 
@@ -251,12 +266,12 @@ class IdaCluDialog(qt_shims.get_QWidget()):
             parent_widget = sender_button.parent()
             if parent_widget:
                 for i, (ctrl_name, var_name, ctrl_ph) in enumerate(script_args):
-                    text_edit = qt_shims.get_QLineEdit()()
+                    text_edit = QLineEdit()
                     text_edit.setPlaceholderText(ctrl_ph)
-                    text_edit.setMaximumSize(qt_shims.get_QSize()(16777215, 30))
+                    text_edit.setMaximumSize(QSize(16777215, 30))
                     parent_widget.layout().addWidget(text_edit)
                     text_edit.setObjectName("{}__{}".format(full_spec_name, var_name))
-                spacer = qt_shims.get_QSpacerItem()(20, 30, qt_shims.get_QSizePolicy().Fixed, qt_shims.get_QSizePolicy().MinimumExpanding)
+                spacer = QSpacerItem(20, 30, QSizePolicy.Fixed, QSizePolicy.MinimumExpanding)
                 parent_widget.layout().addStretch(1)
                 self.option_sender = full_spec_name
                 return
@@ -497,8 +512,8 @@ class IdaCluDialog(qt_shims.get_QWidget()):
     def showContextMenu(self, point):
         ix = self.ui.ResultsView.indexAt(point)
         if ix.column() == 0:
-            menu = qt_shims.get_QMenu()()
-            menu.addAction(qt_shims.get_QIcon()(':/idaclu/icon_64.png'), "Rename")
+            menu = QMenu()
+            menu.addAction(QIcon(':/idaclu/icon_64.png'), "Rename")
             action = menu.exec_(self.ui.ResultsView.mapToGlobal(point))
             if action:
                 if action.text() == "Rename":
@@ -569,7 +584,7 @@ class IdaCluDialog(qt_shims.get_QWidget()):
                 del item
 
     def toggleModeMerge(self):
-        _translate = qt_shims.get_QCoreApplication().translate
+        _translate = QCoreApplication.translate
         btn_caption = None
         edit_placeholder = None
         if self.mode_merge == 'prefix':
@@ -585,11 +600,11 @@ class IdaCluDialog(qt_shims.get_QWidget()):
 
     def showFilters(self):
         if not self.is_filters_shown:
-            self.ui.FiltersGroup.setMinimumSize(qt_shims.get_QSize()(16777215, 16777215))
-            self.ui.FiltersGroup.setMaximumSize(qt_shims.get_QSize()(16777215, 16777215))
+            self.ui.FiltersGroup.setMinimumSize(QSize(16777215, 16777215))
+            self.ui.FiltersGroup.setMaximumSize(QSize(16777215, 16777215))
         else:
-            self.ui.FiltersGroup.setMinimumSize(qt_shims.get_QSize()(16777215, 1))
-            self.ui.FiltersGroup.setMaximumSize(qt_shims.get_QSize()(16777215, 1))
+            self.ui.FiltersGroup.setMinimumSize(QSize(16777215, 1))
+            self.ui.FiltersGroup.setMaximumSize(QSize(16777215, 1))
 
         self.is_filters_shown = not self.is_filters_shown
 
@@ -667,12 +682,12 @@ class IdaCluDialog(qt_shims.get_QWidget()):
                     # an attempt to load sub-plugin finished
                     # let's draw a corresponding button
                     sp_name = getattr(sp_module, 'SCRIPT_NAME', sp_name)
-                    sp_layout = qt_shims.get_QVBoxLayout()()
-                    sp_frame = qt_shims.get_QFrame()()
-                    sp_frame.setSizePolicy(qt_shims.get_QSizePolicy().Minimum, qt_shims.get_QSizePolicy().Minimum)
+                    sp_layout = QVBoxLayout()
+                    sp_frame = QFrame()
+                    sp_frame.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
                     sp_frame.setObjectName('Frame#{}#{}'.format(spg_ref, sp_bname))
 
-                    sp_button = qt_shims.get_QPushButton()(sp_name)
+                    sp_button = QPushButton(sp_name)
                     if is_plug_ok:
                         sp_button.clicked.connect(self.get_plugin_data)
                     else:

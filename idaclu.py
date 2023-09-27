@@ -37,7 +37,10 @@ except ImportError:
     class PluginForm:
         pass
 
-from idaclu import qt_shims
+from idaclu.qt_shims import (
+    QIcon,
+    QMessageBox
+)
 from idaclu import idaclu_gui
 from idaclu.assets import resource
 
@@ -186,7 +189,7 @@ class IdaCluForm(PluginForm):
     def __init__(self, env_desc):
         super(IdaCluForm, self).__init__()
         self.env_desc = env_desc
-        self.icon = qt_shims.get_QIcon()(':/idaclu/icon_64.png')
+        self.icon = QIcon(':/idaclu/icon_64.png')
         self.qss = os.path.join(SCRIPT_DIR, 'idaclu', 'assets', 'style.qss')
 
     def OnCreate(self, form):
@@ -253,7 +256,7 @@ if __name__ == "__main__":
     env_desc = common_init()
     if env_desc.run_mode == 'script':
         if not ida_shims.get_input_file_path():
-            qt_shims.get_QMessageBox().information(None, "File Missing", "Please load a file in IDA first, then run script again.")
+            QMessageBox.information(None, "File Missing", "Please load a file in IDA first, then run script again.")
         else:
             main(env_desc)
 

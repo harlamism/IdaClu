@@ -42,6 +42,7 @@ from idaclu.qt_shims import (
     QVBoxLayout,
     QWidget
 )
+from idaclu.qt_utils import i18n
 
 class Worker(QThread):
     updateProgress = Signal(int)
@@ -567,32 +568,31 @@ class Ui_PluginDialog(object):
     # setupUi
 
     def retranslateUi(self, PluginDialog):
-        _translate = QCoreApplication.translate
-        PluginDialog.setWindowTitle(_translate("PluginDialog", "Dialog", None))
-        self.ScriptsHeader.setText(_translate("PluginDialog", "TOOLKIT", None))
-        self.FiltersHeader.setText(_translate("PluginDialog", "FILTERS", None))
+        PluginDialog.setWindowTitle(i18n("Dialog"))
+        self.ScriptsHeader.setText(i18n("TOOLKIT"))
+        self.FiltersHeader.setText(i18n("FILTERS"))
         self.FiltersGroup.setTitle("")
-        self.PrefixHeader.setText(_translate("PluginDialog", "PREFIXES", None))
+        self.PrefixHeader.setText(i18n("PREFIXES"))
         # self.PrefixSelect.setCurrentText("")
-        # self.PrefixSelect.setPlaceholderText(_translate("PluginDialog", "-", None))
-        # self.FolderSelect.setPlaceholderText(_translate("PluginDialog", "-", None))
-        self.FolderHeader.setText(_translate("PluginDialog", "FOLDERS", None))
+        # self.PrefixSelect.setPlaceholderText(i18n("-"))
+        # self.FolderSelect.setPlaceholderText(i18n("-"))
+        self.FolderHeader.setText(i18n("FOLDERS"))
         self.PaletteYellow.setText("")
         self.PaletteBlue.setText("")
         self.PaletteGreen.setText("")
         self.PalettePink.setText("")
-        self.ModeToggle.setText(_translate("PluginDialog", "R", None))
-        self.ModeToggle.setToolTip(_translate("PluginDialog", "Toggle recursive mode on/off", None))
-        self.NameToggle.setToolTip(_translate("PluginDialog", "Switch between Prefix and Folder modes", None))
-        self.NameToggle.setText(_translate("PluginDialog", "PREFIX", None))
-        self.SetNameButton.setText(_translate("PluginDialog", "ADD", None))
-        self.ClsNameButton.setText(_translate("PluginDialog", "CLEAR", None))
+        self.ModeToggle.setText(i18n("R"))
+        self.ModeToggle.setToolTip(i18n("Toggle recursive mode on/off"))
+        self.NameToggle.setToolTip(i18n("Switch between Prefix and Folder modes"))
+        self.NameToggle.setText(i18n("PREFIX"))
+        self.SetNameButton.setText(i18n("ADD"))
+        self.ClsNameButton.setText(i18n("CLEAR"))
 
-        self.SetColorYellow.setToolTip(_translate("PluginDialog", "Highlight function yellow", None))
-        self.SetColorBlue.setToolTip(_translate("PluginDialog", "Highlight function blue", None))
-        self.SetColorGreen.setToolTip(_translate("PluginDialog", "Highlight function green", None))
-        self.SetColorPink.setToolTip(_translate("PluginDialog", "Highlight function pink", None))
-        self.SetColorNone.setToolTip(_translate("PluginDialog", "Remove function highlight", None))
+        self.SetColorYellow.setToolTip(i18n("Highlight function yellow"))
+        self.SetColorBlue.setToolTip(i18n("Highlight function blue"))
+        self.SetColorGreen.setToolTip(i18n("Highlight function green"))
+        self.SetColorPink.setToolTip(i18n("Highlight function pink"))
+        self.SetColorNone.setToolTip(i18n("Remove function highlight"))
 
         self.SetColorYellow.setText("")
         self.SetColorBlue.setText("")

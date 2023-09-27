@@ -3,6 +3,7 @@
 
 from idaclu.qt_shims import (
     QColor,
+    QCoreApplication,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -14,6 +15,9 @@ from idaclu.qt_shims import (
     Signal
 )
 
+
+def i18n(text, context="PluginDialog"):
+    return QCoreApplication.translate(context, u"{}".format(text), None)
 
 class FrameLayout(QWidget):
     def __init__(self, parent=None, title=None, env=None):

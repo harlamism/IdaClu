@@ -29,7 +29,7 @@ from idaclu.qt_shims import (
 from idaclu import ida_utils
 from idaclu import plg_utils
 from idaclu.ui_idaclu import Ui_PluginDialog
-from idaclu.qt_utils import FrameLayout
+from idaclu.qt_utils import FrameLayout, i18n
 from idaclu.models import ResultModel, ResultNode
 from idaclu.assets import resource
 
@@ -584,7 +584,6 @@ class IdaCluDialog(QWidget):
                 del item
 
     def toggleModeMerge(self):
-        _translate = QCoreApplication.translate
         btn_caption = None
         edit_placeholder = None
         if self.mode_merge == 'prefix':
@@ -593,7 +592,7 @@ class IdaCluDialog(QWidget):
         else:  # 'folder'
             btn_caption = "PREFIX"
             edit_placeholder = 'Insert prefix'
-        self.ui.NameToggle.setText(_translate(btn_caption, btn_caption, None))
+        self.ui.NameToggle.setText(i18n(btn_caption))
         self.ui.NameEdit.setPlaceholderText(edit_placeholder)
 
         self.mode_merge = 'folder' if self.mode_merge == 'prefix' else 'prefix'

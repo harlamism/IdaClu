@@ -17,7 +17,7 @@ from idaclu.qt_shims import (
 
 
 def i18n(text, context="PluginDialog"):
-    return QCoreApplication.translate(context, u"{}".format(text), None)
+    return QCoreApplication.translate(context, text)
 
 class FrameLayout(QWidget):
     def __init__(self, parent=None, title=None, env=None):

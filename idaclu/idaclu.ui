@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>IdaClu v1.0</string>
   </property>
   <property name="windowIcon">
    <iconset resource="assets/resource.qrc">
@@ -57,7 +57,7 @@
             <cursorShape>PointingHandCursor</cursorShape>
            </property>
            <property name="text">
-            <string>TOOLKIT</string>
+            <string>TOOLSET</string>
            </property>
           </widget>
          </item>

@@ -29,7 +29,7 @@ from idaclu.qt_shims import (
 from idaclu import ida_utils
 from idaclu import plg_utils
 from idaclu.ui_idaclu import Ui_PluginDialog
-from idaclu.qt_utils import FrameLayout, i18n
+from idaclu.qt_widgets import FrameLayout
 from idaclu.models import ResultModel, ResultNode
 from idaclu.assets import resource
 
@@ -62,16 +62,15 @@ class IdaCluDialog(QWidget):
     def __init__(self, env_desc):
         super(IdaCluDialog, self).__init__()
         self.env_desc = env_desc
-        self.ui = Ui_PluginDialog()
+        self.ui = Ui_PluginDialog(env_desc)
         self.ui.setupUi(self)
 
-        self.ui.ResultsView.setItemDelegate(AppendTextEditDelegate())
+        self.ui.rvTable.setItemDelegate(AppendTextEditDelegate())
 
         self.is_sidebar_on_left = True
         self.is_filters_shown = True
         self.option_sender = None
         self.is_mode_recursion = False
-        self.mode_merge = 'prefix'
         # values to initialize the corresponding filter
 
         if self.env_desc.feat_folders:
@@ -89,56 +88,34 @@ class IdaCluDialog(QWidget):
 
         sp_path = self.get_splg_root(self.env_desc.plg_loc, 'idaclu')
         for frame in self.get_sp_controls(sp_path):
-            self.ui.ScriptsLayout.addWidget(frame)
+            self.ui.ScriptsContentsLayout.addWidget(frame)
+
+        self.ui.wColorTool.setClickHandler(self.changeFuncColor)
 
         self.initFoldersFilter()
         self.initPrefixFilter()
         self.bindUiElems()
-        self.applyStyling()
 
     def toggleRecursion(self):
         self.is_mode_recursion = not self.is_mode_recursion
 
     def bindUiElems(self):
         self.bindClicks()
-        self.ui.ResultsView.doubleClicked.connect(self.treeDoubleClick)
-        self.ui.ResultsView.customContextMenuRequested.connect(self.showContextMenu)
+        self.ui.rvTable.doubleClicked.connect(self.treeDoubleClick)
+        self.ui.rvTable.customContextMenuRequested.connect(self.showContextMenu)
 
     def bindClicks(self):
         feat_folders = self.env_desc.feat_folders
         bind_data = [
-            (self.ui.NameToggle, self.toggleModeMerge, feat_folders),
-            (self.ui.ModeToggle, self.toggleRecursion, True),
-            (self.ui.SetNameButton, self.addMerge, True),
-            (self.ui.ClsNameButton, self.clsMerge, True),
-            (self.ui.SetColorYellow, self.changeFuncColor, True),
-            (self.ui.SetColorBlue, self.changeFuncColor, True),
-            (self.ui.SetColorGreen, self.changeFuncColor, True),
-            (self.ui.SetColorPink, self.changeFuncColor, True),
-            (self.ui.SetColorNone, self.changeFuncColor, True),
             (self.ui.ScriptsHeader, self.swapPosition, True),
             (self.ui.FiltersHeader, self.showFilters, True)
         ]
         for (elem, meth, cond) in bind_data:
             if cond:
                 elem.clicked.connect(meth)
-
-    def applyStyling(self):
-        self.ui.ModeToggle.setProperty('class','tool-btn tool-btn-hov')
-        self.ui.NameEdit.setProperty('class','head-edit')
-        self.ui.SetNameButton.setProperty('class','tool-btn tool-btn-hov')
-        self.ui.ClsNameButton.setProperty('class','tool-btn tool-btn-hov')
-        #
-        self.ui.SetColorYellow.setProperty('class','plt-btn plt-btn-yellow')
-        self.ui.SetColorBlue.setProperty('class','plt-btn plt-btn-blue')
-        self.ui.SetColorGreen.setProperty('class','plt-btn plt-btn-green')
-        self.ui.SetColorPink.setProperty('class','plt-btn plt-btn-pink')
-        self.ui.SetColorNone.setProperty('class','plt-btn plt-btn-none')
-        self.ui.PaletteYellow.setProperty('class','plt-btn plt-btn-yellow')
-        self.ui.PaletteBlue.setProperty('class','plt-btn plt-btn-blue')
-        self.ui.PaletteGreen.setProperty('class','plt-btn plt-btn-green')
-        self.ui.PalettePink.setProperty('class','plt-btn plt-btn-pink')
-        self.ui.PaletteNone.setProperty('class','plt-btn plt-btn-none')
+        self.ui.wLabelTool.setModeHandler(self.toggleRecursion)
+        self.ui.wLabelTool.setSetHandler(self.addMerge)
+        self.ui.wLabelTool.setClsHandler(self.clsMerge)
 
     def getFuncPrefs(self, is_dummy=False):
         pfx_afacts = ['%', 'sub_']
@@ -151,43 +128,21 @@ class IdaCluDialog(QWidget):
         return list(prefs)
 
     def viewSelChanged(self):
-        self.ui.SetNameButton.setEnabled(True)
-        self.ui.ClsNameButton.setEnabled(True)
-        self.ui.SetColorYellow.setEnabled(True)
-        self.ui.SetColorBlue.setEnabled(True)
-        self.ui.SetColorGreen.setEnabled(True)
-        self.ui.SetColorPink.setEnabled(True)
-        self.ui.SetColorNone.setEnabled(True)
+        self.ui.wLabelTool.setEnabled(True)
+        self.ui.wColorTool.setEnabled(True)
 
     def initPrefixFilter(self):
-        self.ui.PrefixSelect.addItems(self.prefixes)
-        self.ui.PrefixSelect.lineEdit().setText("")
+        self.ui.wPrefixFilter.addItems(self.prefixes)
+        self.ui.wPrefixFilter.setText("")
 
     def initFoldersFilter(self):
         if self.env_desc.feat_folders:
-            if len(self.folders) == 0:
-                self.ui.FolderSelect.setEnabled(False)
-                # leave "as-is"
-                # do not populate the corresponding combo-box
-            else:
-                # leave "as-is"
-                # do not disable the corresponding combo-box
-                self.ui.FolderSelect.addItems(self.folders)
-
-            # do not print initial value
-            self.ui.FolderSelect.lineEdit().setText("")
-            # default pointing cursor and
-            # hoverable button
-            self.ui.NameToggle.setProperty('class','tool-btn tool-btn-hov edit-head')
+            self.ui.wFolderFilter.addItems(self.folders)
+            self.ui.wFolderFilter.setText("")
         else:
-            self.ui.FolderHeader.setParent(None)
-            self.ui.FolderSelect.setParent(None)
-            self.ui.FolderFilter.setParent(None)
-            # graceful degradation -
-            # button does not appear as clickable
-            self.ui.NameToggle.setCursor(QCursor(Qt.ArrowCursor))
-            self.ui.NameToggle.setProperty('class','tool-btn edit-head')
-            layout = self.ui.FiltersAdapter
+            self.ui.wFolderFilter.removeSelf()
+            self.ui.FolderFilterLayout.setParent(None)
+            layout = self.ui.vlFiltersGroup
             item = layout.takeAt(0)
             if item:
                 widget = item.widget()
@@ -195,27 +150,13 @@ class IdaCluDialog(QWidget):
                     widget.deleteLater()
                 del item
 
-    def getSelectedColors(self):
-        colors = []
-        if self.ui.PaletteYellow.isChecked():
-            colors.append(plg_utils.RgbColor((255,255,191)))
-        if self.ui.PaletteBlue.isChecked():
-            colors.append(plg_utils.RgbColor((199,255,255)))
-        if self.ui.PaletteGreen.isChecked():
-            colors.append(plg_utils.RgbColor((191,255,191)))
-        if self.ui.PalettePink.isChecked():
-            colors.append(plg_utils.RgbColor((255,191,239)))
-        if self.ui.PaletteNone.isChecked():
-            colors.append(plg_utils.RgbColor((255,255,255)))
-        return colors
-
     def get_plugin_data(self):
         def sort_with_progress(constant, mcounter):
             def custom_sort(item):
                 index, element = item
                 mcounter[0] += 1
                 finished = 65 + int(15 * (mcounter[0] / float(constant)))
-                self.ui.worker.updateProgress.emit(finished)
+                self.ui.wProgressBar.updateProgress(finished)
                 return element['func_size']
             return custom_sort
 
@@ -336,7 +277,7 @@ class IdaCluDialog(QWidget):
                 sdatt[dt].append(entry)
                 global_index += 1
                 finished = 50 + int(15 * (global_index / float(overall_count)))
-                self.ui.worker.updateProgress.emit(finished)
+                self.ui.wProgressBar.updateProgress(finished)
 
         mut_counter = [0]
         for key, value in sdatt.items():
@@ -349,32 +290,32 @@ class IdaCluDialog(QWidget):
                 self.items[-1].addChild(ResultNode(list(tt.values())))
                 global_index += 1
                 finished = 80 + int(15 * (global_index / float(overall_count)))
-                self.ui.worker.updateProgress.emit(finished)
+                self.ui.wProgressBar.updateProgress(finished)
 
 
         self.some_options_shown = None
-        self.ui.ResultsView.setModel(ResultModel(self.heads, self.items, self.env_desc))
-        self.ui.worker.updateProgress.emit(100)
+        self.ui.rvTable.setModel(ResultModel(self.heads, self.items, self.env_desc))
+        self.ui.wProgressBar.updateProgress(100)
         self.prepareView()
 
     def prepareView(self):
-        self.ui.ResultsView.setColumnHidden(self.heads.index('Color'), True)
+        self.ui.rvTable.setColumnHidden(self.heads.index('Color'), True)
         # color component values; irrelevant
-        resultsViewSelModel = self.ui.ResultsView.selectionModel()
-        resultsViewSelModel.selectionChanged.connect(self.viewSelChanged)
-        self.ui.ResultsView.header().resizeSection(0, 240)
-        self.ui.ResultsView.header().resizeSection(1, 96)
-        self.ui.ResultsView.header().resizeSection(2, 96)
-        self.ui.ResultsView.header().resizeSection(3, 96)
+        rvTableSelModel = self.ui.rvTable.selectionModel()
+        rvTableSelModel.selectionChanged.connect(self.viewSelChanged)
+        self.ui.rvTable.header().resizeSection(0, 240)
+        self.ui.rvTable.header().resizeSection(1, 96)
+        self.ui.rvTable.header().resizeSection(2, 96)
+        self.ui.rvTable.header().resizeSection(3, 96)
 
     def updatePb(self, curr_idx, total_count):
         finished = int(70 * (curr_idx / float(total_count)))
         self.ui.worker.updateProgress.emit(finished)
 
     def updatePbFunc(self):
-        self.sel_dirs = self.ui.FolderSelect.getData().split('; ')
-        self.sel_prfx = self.ui.PrefixSelect.getData().split('; ')
-        self.sel_colr = self.getSelectedColors()
+        self.sel_dirs = self.ui.wFolderFilter.getData()
+        self.sel_prfx = self.ui.wPrefixFilter.getData()
+        self.sel_colr = self.ui.wColorFilter.getSelectedColors()
 
         func_desc = list(idautils.Functions())
         func_count = len(func_desc)
@@ -384,7 +325,7 @@ class IdaCluDialog(QWidget):
                 continue
 
             finished = int(50 * (func_idx/float(func_count)))
-            self.ui.worker.updateProgress.emit(finished)
+            self.ui.wProgressBar.updateProgress(finished)
             yield func_addr
 
     def isFuncRelevant(self, func_addr):
@@ -416,17 +357,17 @@ class IdaCluDialog(QWidget):
 
     def addMerge(self):
         address_col = self.heads.index('Address')
-        merge_name = self.ui.NameEdit.text()
-        if self.env_desc.feat_folders and self.mode_merge == 'folder':
+        merge_name = self.ui.wLabelTool.getLabelName()
+        if self.env_desc.feat_folders and self.ui.wLabelTool.getLabelMode() == 'folder':
             ida_utils.create_folder(merge_name)
-            self.ui.FolderSelect.addItemNew("/{}".format(merge_name))
-        elif self.mode_merge == 'prefix':
-            self.ui.PrefixSelect.addItemNew(merge_name)
+            self.ui.wFolderFilter.addItemNew("/{}".format(merge_name))
+        elif self.ui.wLabelTool.getLabelMode() == 'prefix':
+            self.ui.wPrefixFilter.addItemNew(merge_name)
 
         captured_addr = []
         # gather only the selected function addresses
-        if self.ui.ResultsView.selectionModel().hasSelection():
-            indexes = [idx for idx in self.ui.ResultsView.selectionModel().selectedRows()]
+        if self.ui.rvTable.selectionModel().hasSelection():
+            indexes = [idx for idx in self.ui.rvTable.selectionModel().selectedRows()]
             fields = [idx.sibling(idx.row(), address_col).data() for idx in indexes]
 
             func_dir = None
@@ -439,15 +380,15 @@ class IdaCluDialog(QWidget):
                 captured_addr.append(func_addr)
                 func_name = ida_shims.get_func_name(func_addr)
 
-                if self.mode_merge == 'prefix':
+                if self.ui.wLabelTool.getLabelMode() == 'prefix':
                     # assumed that prefixes must contain delimiter
                     func_name_new = plg_utils.add_prefix(func_name, merge_name, False)
                     func_name_shadow = plg_utils.add_prefix(func_name, merge_name, True)
                     ida_shims.set_name(func_addr, func_name_new, idaapi.SN_CHECK)
-                    self.ui.ResultsView.model().setData(indexes[idx], func_name_shadow)
+                    self.ui.rvTable.model().setData(indexes[idx], func_name_shadow)
                 else:  # folder
                     func_dir.rename(func_name, '/{}/{}'.format(merge_name, func_name))
-                    self.ui.ResultsView.model().setData(indexes[idx], str("/" + merge_name))
+                    self.ui.rvTable.model().setData(indexes[idx], str("/" + merge_name))
 
         # if recursion mode is enabled - find all calees
         additional_addr = []
@@ -457,7 +398,7 @@ class IdaCluDialog(QWidget):
 
             for func_addr in additional_addr:
                 func_name = ida_shims.get_func_name(func_addr)
-                if self.mode_merge == 'prefix':
+                if self.ui.wLabelTool.getLabelMode() == 'prefix':
                     func_name_new = merge_name + func_name
                     ida_shims.set_name(func_addr, func_name_new, idaapi.SN_CHECK)
                 else:  # folder
@@ -469,23 +410,14 @@ class IdaCluDialog(QWidget):
 
         ida_utils.refresh_ui()
 
-    def getTableAddr(self):
-        if self.ui.ResultsView.selectionModel().hasSelection():
-            indexes = [index for index in self.ui.ResultsView.selectionModel().selectedRows()]
-            for index in indexes:
-                addr_str = index.sibling(index.row(), self.getFuncAddrCol()).data()
-                addr_int = int(addr_str, base=16)
-                yield addr_int
-
     def clsMerge(self):
-        if self.ui.ResultsView.selectionModel().hasSelection():
-            indexes = [index for index in self.ui.ResultsView.selectionModel().selectedRows()]
+        if self.ui.rvTable.selectionModel().hasSelection():
+            indexes = [index for index in self.ui.rvTable.selectionModel().selectedRows()]
             data = [index.sibling(index.row(), self.getFuncAddrCol()).data() for index in indexes]
-            pfx = self.ui.NameEdit.text()
             for idx, addr_field in enumerate(data):
                 func_addr = int(addr_field, base=16)
                 func_name = ida_shims.get_func_name(func_addr)
-                if self.mode_merge == 'prefix':
+                if self.ui.wLabelTool.getLabelMode() == 'prefix':
                     func_prefs = ida_utils.get_func_prefs(func_name, True, True)
                     if len(func_prefs) == 1 and func_prefs[0] == 'sub_':
                         pass
@@ -496,8 +428,8 @@ class IdaCluDialog(QWidget):
                         name_token = str(func_prefs[0]).replace('_', '%')
                         func_name_new = func_name.replace(name_token, '')
                         ida_shims.set_name(func_addr, func_name_new, idaapi.SN_NOWARN)
-                        self.ui.ResultsView.model().setData(indexes[idx], func_name_new)
-                elif self.mode_merge == 'folder':
+                        self.ui.rvTable.model().setData(indexes[idx], func_name_new)
+                elif self.ui.wLabelTool.getLabelMode() == 'folder':
                     func_dir = ida_dirtree.get_std_dirtree(ida_dirtree.DIRTREE_FUNCS)
                     func_dir.chdir('/')
                     if func_addr in self.folders_funcs:
@@ -505,19 +437,19 @@ class IdaCluDialog(QWidget):
                         func_path_old = '{}/{}'.format(func_fldr, func_name)
                         func_path_new = '/{}'.format(func_name)
                         func_dir.rename(func_path_old, func_path_new)
-                        self.ui.ResultsView.model().setData(indexes[idx], '/')
+                        self.ui.rvTable.model().setData(indexes[idx], '/')
                 else:
                     ida_shims.msg('ERROR: unknown label mode')
 
     def showContextMenu(self, point):
-        ix = self.ui.ResultsView.indexAt(point)
+        ix = self.ui.rvTable.indexAt(point)
         if ix.column() == 0:
             menu = QMenu()
             menu.addAction(QIcon(':/idaclu/icon_64.png'), "Rename")
-            action = menu.exec_(self.ui.ResultsView.mapToGlobal(point))
+            action = menu.exec_(self.ui.rvTable.mapToGlobal(point))
             if action:
                 if action.text() == "Rename":
-                    self.ui.ResultsView.edit(ix)
+                    self.ui.rvTable.edit(ix)
 
     def getFuncAddrCol(self):
         if self.env_desc.feat_folders:
@@ -542,29 +474,28 @@ class IdaCluDialog(QWidget):
         else:
             ida_shims.msg('ERROR: unknown palette button')
 
-        if self.ui.ResultsView.selectionModel().hasSelection():
-            indexes = [index for index in self.ui.ResultsView.selectionModel().selectedRows()]
+        if self.ui.rvTable.selectionModel().hasSelection():
+            indexes = [index for index in self.ui.rvTable.selectionModel().selectedRows()]
             data = [index.sibling(index.row(), self.getFuncAddrCol()).data() for index in indexes]
 
-            pfx = self.ui.NameEdit.text()
             for idx, va_str in enumerate(data):
                 va = int(va_str, base=16)
                 ida_shims.set_color(va, idc.CIC_FUNC, color.get_to_int())
-                self.ui.ResultsView.model().setData(indexes[idx], color.get_to_str())
+                self.ui.rvTable.model().setData(indexes[idx], color.get_to_str())
 
     def swapPosition(self):
-        layout = self.ui.splitter
+        layout = self.ui.DialogSplitter
         if not self.env_desc.feat_ida6:
             self.ui.SidebarFrame.setParent(None)
-            self.ui.ContentFrame.setParent(None)
+            self.ui.MainFrame.setParent(None)
         else:
             self.clearLayout(layout)
 
         if not self.is_sidebar_on_left:
             layout.insertWidget(0, self.ui.SidebarFrame)
-            layout.insertWidget(1, self.ui.ContentFrame)
+            layout.insertWidget(1, self.ui.MainFrame)
         else:
-            layout.insertWidget(0, self.ui.ContentFrame)
+            layout.insertWidget(0, self.ui.MainFrame)
             layout.insertWidget(1, self.ui.SidebarFrame)
 
         layout.setCollapsible(0,False)
@@ -582,20 +513,6 @@ class IdaCluDialog(QWidget):
                 # else:
                 #     self.clearLayout(item.layout())
                 del item
-
-    def toggleModeMerge(self):
-        btn_caption = None
-        edit_placeholder = None
-        if self.mode_merge == 'prefix':
-            btn_caption = "FOLDER"
-            edit_placeholder = 'Insert name'
-        else:  # 'folder'
-            btn_caption = "PREFIX"
-            edit_placeholder = 'Insert prefix'
-        self.ui.NameToggle.setText(i18n(btn_caption))
-        self.ui.NameEdit.setPlaceholderText(edit_placeholder)
-
-        self.mode_merge = 'folder' if self.mode_merge == 'prefix' else 'prefix'
 
     def showFilters(self):
         if not self.is_filters_shown:

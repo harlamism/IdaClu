@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'idacludGBIJV.ui'
+## Form generated from reading UI file 'idacluaBebKo.ui'
 ##
 ## Created by: Qt User Interface Compiler version 5.15.2
 ##
@@ -44,522 +44,268 @@ from idaclu.qt_shims import (
 )
 from idaclu.qt_utils import i18n
 
-class Worker(QThread):
-    updateProgress = Signal(int)
-
-    def __init__(self):
-        QThread.__init__(self)
-
-    def run(self):
-        for i in range(1, 101):
-            self.updateProgress.emit(i)
-            time.sleep(0.01)
-
-class CheckableComboBox(QComboBox):
-    def __init__(self):
-        super(CheckableComboBox, self).__init__()
-        self.setEditable(True)
-        self.lineEdit().setReadOnly(True)
-        self.closeOnLineEditClick = False
-        self.lineEdit().installEventFilter(self)
-        self.view().viewport().installEventFilter(self)
-        self.model().dataChanged.connect(self.updateLineEditField)
-        self.itemDelegate = QStyledItemDelegate(self)
-        self.setItemDelegate(self.itemDelegate)
-
-    def hidePopup(self):
-        super(CheckableComboBox, self).hidePopup()
-        self.startTimer(100)
-
-    def addItems(self, items, itemList=None):
-        for indx, text in enumerate(items):
-            try:
-                data = itemList[indx]
-            except (TypeError, IndexError):
-                data = None
-            self.addItem(text, data)
-
-    def addItemNew(self, text, userData=None):
-        for row in range(self.model().rowCount()):
-            item = self.model().item(row)
-            if (item and (item.text() == text)) or (userData and item.data() == userData):
-                return False
-        self.addItem(text, userData)
-        return True
-
-    def addItem(self, text, userData=None):
-        item = QStandardItem()
-        item.setText(text)
-        if not userData is None:
-            item.setData(userData)
-        item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable)
-        item.setData(Qt.Unchecked, Qt.CheckStateRole)
-        self.model().appendRow(item)
-
-    def eventFilter(self, widget, event):
-        if widget == self.lineEdit():
-            if event.type() == QEvent.MouseButtonRelease:
-                if self.closeOnLineEditClick:
-                    self.hidePopup()
-                else:
-                    self.showPopup()
-                return True
-            return super(CheckableComboBox, self).eventFilter(widget, event)
-        if widget == self.view().viewport():
-            if event.type() == QEvent.MouseButtonRelease:
-                indx = self.view().indexAt(event.pos())
-                item = self.model().item(indx.row())
-
-                if item.checkState() == Qt.Checked:
-                    item.setCheckState(Qt.Unchecked)
-                else:
-                    item.setCheckState(Qt.Checked)
-                return True
-            return super(CheckableComboBox, self).eventFilter(widget, event)
-
-    def updateLineEditField(self):
-        text_container = []
-        for i in range(self.model().rowCount()):
-            if self.model().item(i).checkState() == Qt.Checked:
-                text_container.append(self.model().item(i).text())
-            text_string = '; '.join(text_container)
-            self.lineEdit().setText(text_string)
-
-    def getData(self):
-        return self.lineEdit().text()
-
-    def clearData(self):
-        self.clear()
-
+from idaclu.qt_widgets import (
+    FilterInputGroup,
+    LabelTool,
+    PaletteTool,
+    ProgressIndicator
+)
 
 class Ui_PluginDialog(object):
+    def __init__(self, env_desc):
+        self.env_desc = env_desc
+
     def setupUi(self, PluginDialog):
         if not PluginDialog.objectName():
             PluginDialog.setObjectName(u"PluginDialog")
-        PluginDialog.resize(911, 449)
-
+        PluginDialog.resize(1024, 600)
         icon = QIcon()
-        icon.addFile(":/idaclu/icon_64.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon.addFile(u":/idaclu/icon_64.png", QSize(), QIcon.Normal, QIcon.Off)
         PluginDialog.setWindowIcon(icon)
-
-        self.PluginAdapter = QHBoxLayout(PluginDialog)
-        self.PluginAdapter.setObjectName(u"PluginAdapter")
-
-        self.splitter = QSplitter()
-        self.splitter.setOrientation(Qt.Horizontal)
-        self.splitter.setObjectName("splitter")
-
-        self.MainLayout = QHBoxLayout()
-        self.MainLayout.setObjectName(u"MainLayout")
-
-        self.SidebarFrame = QFrame(PluginDialog)
+        self.vlPluginDialog = QVBoxLayout(PluginDialog)
+        self.vlPluginDialog.setObjectName(u"vlPluginDialog")
+        self.DialogSplitter = QSplitter(PluginDialog)
+        self.DialogSplitter.setObjectName(u"DialogSplitter")
+        self.DialogSplitter.setOrientation(Qt.Horizontal)
+        self.DialogSplitter.setChildrenCollapsible(False)
+        self.SidebarFrame = QFrame(self.DialogSplitter)
+        self.SidebarFrame.setObjectName(u"SidebarFrame")
         self.SidebarLayout = QVBoxLayout(self.SidebarFrame)
         self.SidebarLayout.setSpacing(0)
         self.SidebarLayout.setObjectName(u"SidebarLayout")
-        self.SidebarLayout.setContentsMargins(0, 0, 5, 0)
-
-        self.ScriptsWidget = QVBoxLayout()
-        self.ScriptsWidget.setSpacing(0)
-        self.ScriptsWidget.setObjectName(u"ScriptsWidget")
-        self.ScriptsHeader = QPushButton(PluginDialog)
+        self.SidebarLayout.setContentsMargins(0, 0, 0, 0)
+        self.ScriptsLayout = QVBoxLayout()
+        self.ScriptsLayout.setSpacing(0)
+        self.ScriptsLayout.setObjectName(u"ScriptsLayout")
+        self.ScriptsHeader = QPushButton(self.SidebarFrame)
         self.ScriptsHeader.setObjectName(u"ScriptsHeader")
-        self.ScriptsHeader.setMinimumSize(QSize(0, 30))
+        self.ScriptsHeader.setMinimumSize(QSize(200, 30))
         font = QFont()
         font.setBold(True)
         font.setWeight(75)
         self.ScriptsHeader.setFont(font)
         self.ScriptsHeader.setCursor(QCursor(Qt.PointingHandCursor))
-        self.ScriptsHeader.setProperty('class', 'head')
-        self.ScriptsWidget.addWidget(self.ScriptsHeader)
+        self.ScriptsHeader.setProperty("class", "head")
+        self.ScriptsLayout.addWidget(self.ScriptsHeader)
 
-        self.ScriptsArea = QScrollArea(PluginDialog)
+        self.ScriptsArea = QScrollArea(self.SidebarFrame)
         self.ScriptsArea.setObjectName(u"ScriptsArea")
-        self.ScriptsArea.setWidgetResizable(True)
-        self.ScriptsArea.horizontalScrollBar().setEnabled(False)
         self.ScriptsArea.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.ScriptsArea.setWidgetResizable(True)
+        self.wScriptsContents = QWidget()
+        self.wScriptsContents.setObjectName(u"wScriptsContents")
+        self.wScriptsContents.setGeometry(QRect(0, 0, 235, 372))
 
-        self.ScriptsContents = QWidget()
-        self.ScriptsContents.setObjectName(u"ScriptsContents")
-        self.ScriptsContents.setGeometry(QRect(0, 0, 215, 233))
+        # custom layout
+        self.ScriptsContentsLayout = QVBoxLayout(self.wScriptsContents)
+        self.ScriptsContentsLayout.setSpacing(0)
+        self.ScriptsContentsLayout.setAlignment(Qt.AlignTop)
 
-        # custom
-        # sub-plugin script buttons are added to the scrollable layout
-        self.ScriptsLayout = QVBoxLayout(self.ScriptsContents)
-        self.ScriptsLayout.setSpacing(0)
-        self.ScriptsLayout.setAlignment(Qt.AlignTop)
+        self.ScriptsArea.setWidget(self.wScriptsContents)
 
-        self.ScriptsArea.setWidget(self.ScriptsContents)
+        self.ScriptsLayout.addWidget(self.ScriptsArea)
 
-        self.ScriptsWidget.addWidget(self.ScriptsArea)
 
-        self.SidebarLayout.addLayout(self.ScriptsWidget)
+        self.SidebarLayout.addLayout(self.ScriptsLayout)
 
-        self.ScriptsSpacer = QSpacerItem(20, 10, QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self.sScriptsBottom = QSpacerItem(20, 10, QSizePolicy.Minimum, QSizePolicy.Fixed)
 
-        self.SidebarLayout.addItem(self.ScriptsSpacer)
+        self.SidebarLayout.addItem(self.sScriptsBottom)
 
-        self.FiltersWidget = QVBoxLayout()
-        self.FiltersWidget.setSpacing(0)
-        self.FiltersWidget.setObjectName(u"FiltersWidget")
-        self.FiltersHeader = QPushButton(PluginDialog)
+        self.FiltersLayout = QVBoxLayout()
+        self.FiltersLayout.setSpacing(0)
+        self.FiltersLayout.setObjectName(u"FiltersLayout")
+        self.FiltersHeader = QPushButton(self.SidebarFrame)
         self.FiltersHeader.setObjectName(u"FiltersHeader")
-        self.FiltersHeader.setMinimumSize(QSize(0, 30))
-        self.FiltersHeader.setProperty('class', 'head')
+        self.FiltersHeader.setMinimumSize(QSize(200, 30))
         font1 = QFont()
         font1.setBold(True)
         font1.setWeight(75)
         self.FiltersHeader.setFont(font1)
         self.FiltersHeader.setCursor(QCursor(Qt.PointingHandCursor))
+        self.FiltersHeader.setProperty("class", "head")
+        self.FiltersLayout.addWidget(self.FiltersHeader)
 
-        self.FiltersWidget.addWidget(self.FiltersHeader)
-
-        self.FiltersGroup = QGroupBox(PluginDialog)
+        self.FiltersGroup = QGroupBox(self.SidebarFrame)
         self.FiltersGroup.setObjectName(u"FiltersGroup")
-        self.FiltersGroup.setMinimumSize(QSize(0, 100))
-        self.FiltersGroup.setAlignment(Qt.AlignBottom|Qt.AlignLeading|Qt.AlignLeft)
-        self.FiltersAdapter = QVBoxLayout(self.FiltersGroup)
-        self.FiltersAdapter.setObjectName(u"FiltersAdapter")
-
-
-        self.FilterSpacerBeg = QSpacerItem(20, 12, QSizePolicy.Minimum, QSizePolicy.Fixed)
-        self.FiltersAdapter.addItem(self.FilterSpacerBeg)
-
-        self.FolderFilter = QHBoxLayout()
-        self.FolderFilter.setSpacing(0)
-        self.FolderFilter.setObjectName(u"FolderFilter")
-        self.FfSpacerBeg = QSpacerItem(14, 26, QSizePolicy.Fixed, QSizePolicy.Minimum)
-        self.FolderFilter.addItem(self.FfSpacerBeg)
-
-        self.FolderHeader = QPushButton(self.FiltersGroup)
-        self.FolderHeader.setObjectName(u"FolderHeader")
-        self.FolderHeader.setFont(font1)
-        self.FolderHeader.setMinimumSize(QSize(96, 26))
-        self.FolderHeader.setMaximumSize(QSize(96, 26))
-        self.FolderHeader.setProperty('class', 'select-head')
-
-        self.FolderFilter.addWidget(self.FolderHeader)
-
-        self.FolderSelect = CheckableComboBox()  # QComboBox(self.FiltersGroup)
-        self.FolderSelect.setObjectName(u"FolderSelect")
-        self.FolderSelect.setMinimumSize(QSize(16777215, 26))
-        self.FolderSelect.setMaximumSize(QSize(16777215, 26))
-        self.FolderSelect.lineEdit().setPlaceholderText("Select filters...")
-        self.FolderFilter.addWidget(self.FolderSelect)
-
-        self.FfSpacerEnd = QSpacerItem(14, 26, QSizePolicy.Fixed, QSizePolicy.Minimum)
-        self.FolderFilter.addItem(self.FfSpacerEnd)
-
-        self.FolderFilter.setStretch(0, 0)
-        self.FolderFilter.setStretch(1, 5)
-        self.FolderFilter.setStretch(2, 7)
-        self.FolderFilter.setStretch(3, 0)
-        self.FiltersAdapter.addLayout(self.FolderFilter)
-
-        self.FolderFilterSpacer = QSpacerItem(20, 12, QSizePolicy.Minimum, QSizePolicy.Fixed)
-        self.FiltersAdapter.addItem(self.FolderFilterSpacer)
-
-        self.PrefixFilter = QHBoxLayout()
-        self.PrefixFilter.setSpacing(0)
-        self.PrefixFilter.setObjectName(u"PrefixFilter")
-        self.PfSpacerBeg = QSpacerItem(14, 26, QSizePolicy.Fixed, QSizePolicy.Minimum)
-        self.PrefixFilter.addItem(self.PfSpacerBeg)
+        self.vlFiltersGroup = QVBoxLayout(self.FiltersGroup)
+        self.vlFiltersGroup.setSpacing(0)
+        self.vlFiltersGroup.setObjectName(u"vlFiltersGroup")
+        self.vlFiltersGroup.setContentsMargins(0, 0, 0, 0)
+        self.sFilters1 = QSpacerItem(20, 15, QSizePolicy.Minimum, QSizePolicy.Fixed)
 
-        self.PrefixHeader = QPushButton(self.FiltersGroup)
-        self.PrefixHeader.setObjectName(u"PrefixHeader")
-        self.PrefixHeader.setFont(font1)
-        self.PrefixHeader.setMinimumSize(QSize(96, 26))
-        self.PrefixHeader.setMaximumSize(QSize(96, 26))
-        self.PrefixHeader.setProperty('class', 'select-head')
+        self.vlFiltersGroup.addItem(self.sFilters1)
 
-        self.PrefixFilter.addWidget(self.PrefixHeader)
-
-        self.PrefixSelect = CheckableComboBox()  # QComboBox(self.FiltersGroup)
-        self.PrefixSelect.setObjectName(u"PrefixSelect")
-        self.PrefixSelect.setEnabled(True)
-        self.PrefixSelect.setAutoFillBackground(False)
-        self.PrefixSelect.setMinimumSize(QSize(16777215, 26))
-        self.PrefixSelect.setMaximumSize(QSize(16777215, 26))
-        self.PrefixSelect.lineEdit().setPlaceholderText("Select filters...")
-        # self.PrefixSelect.setEditable(True)
-
-        self.PrefixFilter.addWidget(self.PrefixSelect)
-        self.PfSpacerEnd = QSpacerItem(14, 26, QSizePolicy.Fixed, QSizePolicy.Minimum)
-        self.PrefixFilter.addItem(self.PfSpacerEnd)
-
-        self.PrefixFilter.setStretch(0, 0)
-        self.PrefixFilter.setStretch(1, 5)
-        self.PrefixFilter.setStretch(2, 7)
-        self.PrefixFilter.setStretch(3, 0)
-        self.FiltersAdapter.addLayout(self.PrefixFilter)
-
-        self.PrefixFilterSpacer = QSpacerItem(20, 12, QSizePolicy.Minimum, QSizePolicy.Fixed)
-        self.FiltersAdapter.addItem(self.PrefixFilterSpacer)
-
-        self.ColorFilter = QHBoxLayout()
-        self.ColorFilter.setObjectName(u"ColorFilter")
-
-        self.CfSpacerBeg = QSpacerItem(40, 26, QSizePolicy.Expanding, QSizePolicy.Minimum)
-        self.ColorFilter.addItem(self.CfSpacerBeg)
-
-        self.PaletteYellow = QPushButton(self.FiltersGroup)
-        self.PaletteYellow.setObjectName(u"PaletteYellow")
-        self.PaletteYellow.setMinimumSize(QSize(26, 26))
-        self.PaletteYellow.setMaximumSize(QSize(26, 26))
-        self.PaletteYellow.setCheckable(True)
-        self.PaletteYellow.setCursor(QCursor(Qt.PointingHandCursor))
+        self.FolderFilterLayout = QHBoxLayout()
+        self.FolderFilterLayout.setObjectName(u"FolderFilterLayout")
+        self.sFolderFilterBeg = QSpacerItem(20, 26, QSizePolicy.Fixed, QSizePolicy.Minimum)
 
-        self.ColorFilter.addWidget(self.PaletteYellow)
+        self.FolderFilterLayout.addItem(self.sFolderFilterBeg)
 
-        self.PaletteBlue = QPushButton(self.FiltersGroup)
-        self.PaletteBlue.setObjectName(u"PaletteBlue")
-        self.PaletteBlue.setMinimumSize(QSize(26, 26))
-        self.PaletteBlue.setMaximumSize(QSize(26, 26))
-        self.PaletteBlue.setCheckable(True)
-        self.PaletteBlue.setCursor(QCursor(Qt.PointingHandCursor))
+        self.wFolderFilter = FilterInputGroup(u"Folders", u"Pick folders...", self.FiltersGroup)
+        self.wFolderFilter.setObjectName(u"wFolderFilter")
+        self.wFolderFilter.setMinimumSize(QSize(0, 26))
+        self.wFolderFilter.setMaximumSize(QSize(16777215, 26))
 
-        self.ColorFilter.addWidget(self.PaletteBlue)
+        self.FolderFilterLayout.addWidget(self.wFolderFilter)
 
-        self.PaletteGreen = QPushButton(self.FiltersGroup)
-        self.PaletteGreen.setObjectName(u"PaletteGreen")
-        self.PaletteGreen.setMinimumSize(QSize(26, 26))
-        self.PaletteGreen.setMaximumSize(QSize(26, 26))
-        self.PaletteGreen.setCheckable(True)
-        self.PaletteGreen.setCursor(QCursor(Qt.PointingHandCursor))
+        self.sFolderFilterEnd = QSpacerItem(20, 26, QSizePolicy.Fixed, QSizePolicy.Minimum)
 
-        self.ColorFilter.addWidget(self.PaletteGreen)
+        self.FolderFilterLayout.addItem(self.sFolderFilterEnd)
 
-        self.PalettePink = QPushButton(self.FiltersGroup)
-        self.PalettePink.setObjectName(u"PalettePink")
-        self.PalettePink.setMinimumSize(QSize(26, 26))
-        self.PalettePink.setMaximumSize(QSize(26, 26))
-        self.PalettePink.setCheckable(True)
-        self.PalettePink.setCursor(QCursor(Qt.PointingHandCursor))
 
-        self.ColorFilter.addWidget(self.PalettePink)
+        self.vlFiltersGroup.addLayout(self.FolderFilterLayout)
 
-        self.PaletteNone = QPushButton(self.FiltersGroup)
-        self.PaletteNone.setObjectName(u"PaletteNone")
-        self.PaletteNone.setMinimumSize(QSize(26, 26))
-        self.PaletteNone.setMaximumSize(QSize(26, 26))
-        self.PaletteNone.setCheckable(True)
-        self.PaletteNone.setCursor(QCursor(Qt.PointingHandCursor))
+        self.sFilters2 = QSpacerItem(20, 15, QSizePolicy.Minimum, QSizePolicy.Fixed)
 
-        self.ColorFilter.addWidget(self.PaletteNone)
+        self.vlFiltersGroup.addItem(self.sFilters2)
 
+        self.PrefixFilterLayout = QHBoxLayout()
+        self.PrefixFilterLayout.setObjectName(u"PrefixFilterLayout")
+        self.sPrefixFilterBeg = QSpacerItem(20, 26, QSizePolicy.Fixed, QSizePolicy.Minimum)
 
-        self.CfSpacerEnd = QSpacerItem(40, 26, QSizePolicy.Expanding, QSizePolicy.Minimum)
-        self.ColorFilter.addItem(self.CfSpacerEnd)
+        self.PrefixFilterLayout.addItem(self.sPrefixFilterBeg)
 
-        self.FiltersAdapter.addLayout(self.ColorFilter)
+        self.wPrefixFilter = FilterInputGroup(u"Prefixes", u"Pick prefixes...", self.FiltersGroup)
+        self.wPrefixFilter.setObjectName(u"wPrefixFilter")
+        self.wPrefixFilter.setMinimumSize(QSize(0, 26))
+        self.wPrefixFilter.setMaximumSize(QSize(16777215, 26))
 
-        self.FilterSpacerEnd = QSpacerItem(20, 12, QSizePolicy.Minimum, QSizePolicy.Fixed)
-        self.FiltersAdapter.addItem(self.FilterSpacerEnd)
+        self.PrefixFilterLayout.addWidget(self.wPrefixFilter)
 
-        self.FiltersWidget.addWidget(self.FiltersGroup)
+        self.sPrefixFilterEnd = QSpacerItem(20, 26, QSizePolicy.Fixed, QSizePolicy.Minimum)
 
-        self.SidebarLayout.addLayout(self.FiltersWidget)
+        self.PrefixFilterLayout.addItem(self.sPrefixFilterEnd)
 
-        self.FiltersSpacer = QSpacerItem(20, 14, QSizePolicy.Minimum, QSizePolicy.Fixed)
 
-        self.SidebarLayout.addItem(self.FiltersSpacer)
+        self.vlFiltersGroup.addLayout(self.PrefixFilterLayout)
 
+        self.sFilters3 = QSpacerItem(20, 15, QSizePolicy.Minimum, QSizePolicy.Fixed)
 
-        self.splitter.addWidget(self.SidebarFrame)
-        self.splitter.setStretchFactor(1,3)
+        self.vlFiltersGroup.addItem(self.sFilters3)
 
-        self.ContentFrame = QFrame(PluginDialog)
-        self.ContentLayout = QVBoxLayout(self.ContentFrame)
-        self.ContentLayout.setSpacing(0)
-        self.ContentLayout.setObjectName(u"ContentLayout")
-        self.ContentLayout.setContentsMargins(0, 0, 5, 0)
+        self.ColorFilterLayout = QHBoxLayout()
+        self.ColorFilterLayout.setObjectName(u"ColorFilterLayout")
+        self.sColorFilterBeg = QSpacerItem(40, 26, QSizePolicy.Fixed, QSizePolicy.Minimum)
 
-        self.progressBar = QProgressBar(PluginDialog)
-        self.progressBar.setObjectName(u"progressBar")
-        self.progressBar.setMinimumSize(QSize(0, 5))
-        self.progressBar.setMaximumSize(QSize(16777215, 5))
-        self.progressBar.setValue(24)
-        self.progressBar.setTextVisible(False)
-        self.progressBar.setVisible(False)
+        self.ColorFilterLayout.addItem(self.sColorFilterBeg)
 
-        self.worker = Worker()
-        self.worker.updateProgress.connect(self.setProgress)
+        self.wColorFilter = PaletteTool(
+            u"ColorFilter",
+            (26, 26),
+            u"Filter",
+            True,
+            False,
+            self.FiltersGroup)
+        self.wColorFilter.setObjectName(u"wColorFilter")
+        self.wColorFilter.setMinimumSize(QSize(0, 26))
+        self.wColorFilter.setMaximumSize(QSize(16777215, 26))
 
-        self.ContentLayout.addWidget(self.progressBar)
+        self.ColorFilterLayout.addWidget(self.wColorFilter)
 
-        self.ResultsLayout = QHBoxLayout()
-        self.ResultsLayout.setObjectName(u"ResultsLayout")
-        self.ResultsView = QTreeView(PluginDialog)
-        self.ResultsView.setObjectName(u"ResultsView")
-        self.ResultsView.setAlternatingRowColors(True)
-        self.ResultsView.header().setDefaultAlignment(Qt.AlignHCenter)
-        self.ResultsView.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        self.ResultsView.setEditTriggers(QTreeView.NoEditTriggers)
-        self.ResultsView.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.sColorFilterEnd = QSpacerItem(40, 26, QSizePolicy.Fixed, QSizePolicy.Minimum)
 
-        self.ResultsLayout.addWidget(self.ResultsView)
+        self.ColorFilterLayout.addItem(self.sColorFilterEnd)
 
-        self.ContentLayout.addLayout(self.ResultsLayout)
 
-        self.ResultsSpacer = QSpacerItem(20, 10, QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self.vlFiltersGroup.addLayout(self.ColorFilterLayout)
 
-        self.ContentLayout.addItem(self.ResultsSpacer)
+        self.sFilters4 = QSpacerItem(20, 15, QSizePolicy.Minimum, QSizePolicy.Fixed)
 
-        self.ToolsWidget = QHBoxLayout()
-        self.ToolsWidget.setSpacing(6)
-        self.ToolsWidget.setObjectName(u"ToolsWidget")
-        self.BegSpacer = QSpacerItem(10, 20, QSizePolicy.Fixed, QSizePolicy.Minimum)
+        self.vlFiltersGroup.addItem(self.sFilters4)
 
-        self.ToolsWidget.addItem(self.BegSpacer)
 
-        self.NameTool = QHBoxLayout()
-        self.NameTool.setObjectName(u"NameTool")
-        self.ModeToggle = QPushButton(PluginDialog)
-        self.ModeToggle.setObjectName(u"ModeToggle")
-        self.ModeToggle.setMinimumSize(QSize(30, 30))
-        self.ModeToggle.setMaximumSize(QSize(30, 30))
-        self.ModeToggle.setFont(font)
-        self.ModeToggle.setCheckable(True)
-        self.ModeToggle.setCursor(QCursor(Qt.PointingHandCursor))
-        self.NameTool.addWidget(self.ModeToggle)
+        self.FiltersLayout.addWidget(self.FiltersGroup)
 
-        self.NameComp = QHBoxLayout()
-        self.NameComp.setSpacing(0)
-        self.NameComp.setObjectName(u"NameComp")
-        self.NameToggle = QPushButton(PluginDialog)
-        self.NameToggle.setObjectName(u"NameToggle")
-        self.NameToggle.setCursor(QCursor(Qt.PointingHandCursor))
 
-        self.NameToggle.setMinimumSize(QSize(75, 30))
-        self.NameToggle.setMaximumSize(QSize(75, 30))
-        self.NameToggle.setFont(font)
-        self.NameToggle.setCheckable(False)
-        self.NameToggle.setAutoExclusive(False)
+        self.SidebarLayout.addLayout(self.FiltersLayout)
 
-        self.NameComp.addWidget(self.NameToggle)
+        self.sFiltersBottom = QSpacerItem(20, 14, QSizePolicy.Minimum, QSizePolicy.Fixed)
 
-        self.NameEdit = QLineEdit(PluginDialog)
-        self.NameEdit.setObjectName(u"NameEdit")
-        self.NameEdit.setMaximumSize(QSize(16777215, 30))
-        self.NameEdit.setPlaceholderText("Insert prefix")
+        self.SidebarLayout.addItem(self.sFiltersBottom)
 
-        self.NameComp.addWidget(self.NameEdit)
+        self.DialogSplitter.addWidget(self.SidebarFrame)
+        self.MainFrame = QFrame(self.DialogSplitter)
+        self.MainFrame.setObjectName(u"MainFrame")
+        self.MainLayout = QVBoxLayout(self.MainFrame)
+        self.MainLayout.setSpacing(0)
+        self.MainLayout.setObjectName(u"MainLayout")
+        self.MainLayout.setContentsMargins(5, 0, 0, 0)
+        self.wProgressBar = ProgressIndicator(self.MainFrame)
+        self.wProgressBar.setObjectName(u"wProgressBar")
+        self.wProgressBar.setMinimumSize(QSize(0, 5))
+        self.wProgressBar.setMaximumSize(QSize(16777215, 5))
 
-        self.NameComp.setStretch(0, 2)
-        self.NameComp.setStretch(1, 5)
+        self.MainLayout.addWidget(self.wProgressBar)
 
-        self.NameTool.addLayout(self.NameComp)
+        self.wResultsView = QWidget(self.MainFrame)
+        self.wResultsView.setObjectName(u"wResultsView")
+        self.hlResultsView = QHBoxLayout(self.wResultsView)
+        self.hlResultsView.setObjectName(u"hlResultsView")
+        self.hlResultsView.setContentsMargins(0, 0, 0, 0)
+        self.rvTable = QTreeView(self.wResultsView)
+        self.rvTable.setObjectName(u"rvTable")
+        self.rvTable.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.rvTable.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.rvTable.setAlternatingRowColors(True)
+        self.rvTable.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
-        self.SetNameButton = QPushButton(PluginDialog)
-        self.SetNameButton.setObjectName(u"SetNameButton")
-        self.SetNameButton.setMinimumSize(QSize(75, 30))
-        self.SetNameButton.setMaximumSize(QSize(75, 30))
-        self.SetNameButton.setFont(font)
-        self.SetNameButton.setEnabled(False)
-        self.SetNameButton.setCursor(QCursor(Qt.PointingHandCursor))
+        self.hlResultsView.addWidget(self.rvTable)
 
-        self.NameTool.addWidget(self.SetNameButton)
 
-        self.ClsNameButton = QPushButton(PluginDialog)
-        self.ClsNameButton.setObjectName(u"ClsNameButton")
-        self.ClsNameButton.setMinimumSize(QSize(75, 30))
-        self.ClsNameButton.setMaximumSize(QSize(75, 30))
-        self.ClsNameButton.setFont(font)
-        self.ClsNameButton.setEnabled(False)
-        self.ClsNameButton.setCursor(QCursor(Qt.PointingHandCursor))
+        self.MainLayout.addWidget(self.wResultsView)
 
-        self.NameTool.addWidget(self.ClsNameButton)
+        self.sToolsTop = QSpacerItem(20, 10, QSizePolicy.Minimum, QSizePolicy.Fixed)
 
+        self.MainLayout.addItem(self.sToolsTop)
 
-        self.ToolsWidget.addLayout(self.NameTool)
+        self.ToolsLayout = QHBoxLayout()
+        self.ToolsLayout.setObjectName(u"ToolsLayout")
+        self.sToolsBeg = QSpacerItem(10, 20, QSizePolicy.Fixed, QSizePolicy.Minimum)
 
-        self.MidSpacer = QSpacerItem(160, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.ToolsLayout.addItem(self.sToolsBeg)
 
-        self.ToolsWidget.addItem(self.MidSpacer)
+        self.wLabelTool = LabelTool(u"LabelTool", self.env_desc, self.MainFrame)
+        self.wLabelTool.setObjectName(u"wLabelTool")
+        self.wLabelTool.setMinimumSize(QSize(320, 30))
+        self.wLabelTool.setMaximumSize(QSize(16777215, 30))
 
-        self.PaletteTool = QHBoxLayout()
-        self.PaletteTool.setObjectName(u"PaletteTool")
+        self.ToolsLayout.addWidget(self.wLabelTool)
 
-        self.SetColorYellow = QPushButton(PluginDialog)
-        self.SetColorYellow.setObjectName(u"SetColorYellow")
-        self.SetColorYellow.setMinimumSize(QSize(30, 30))
-        self.SetColorYellow.setMaximumSize(QSize(30, 30))
-        self.SetColorYellow.setCheckable(True)
-        self.SetColorYellow.setChecked(False)
-        self.SetColorYellow.setAutoExclusive(True)
-        self.SetColorYellow.setEnabled(False)
-        self.SetColorYellow.setCursor(QCursor(Qt.PointingHandCursor))
+        self.sToolsMid = QSpacerItem(80, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
-        self.PaletteTool.addWidget(self.SetColorYellow)
+        self.ToolsLayout.addItem(self.sToolsMid)
 
-        self.SetColorBlue = QPushButton(PluginDialog)
-        self.SetColorBlue.setObjectName(u"SetColorBlue")
-        self.SetColorBlue.setMinimumSize(QSize(30, 30))
-        self.SetColorBlue.setMaximumSize(QSize(30, 30))
-        self.SetColorBlue.setCheckable(True)
-        self.SetColorBlue.setAutoExclusive(True)
-        self.SetColorBlue.setEnabled(False)
-        self.SetColorBlue.setCursor(QCursor(Qt.PointingHandCursor))
+        self.wColorTool = PaletteTool(
+            u"PaletteTool",
+            (30, 30),
+            u"SetColor",
+            False,
+            True,
+            self.MainFrame)
+        self.wColorTool.setObjectName(u"wColorTool")
+        self.wColorTool.setMinimumSize(QSize(192, 30))
+        self.wColorTool.setMaximumSize(QSize(16777215, 30))
 
-        self.PaletteTool.addWidget(self.SetColorBlue)
+        self.ToolsLayout.addWidget(self.wColorTool)
 
-        self.SetColorGreen = QPushButton(PluginDialog)
-        self.SetColorGreen.setObjectName(u"SetColorGreen")
-        self.SetColorGreen.setMinimumSize(QSize(30, 30))
-        self.SetColorGreen.setMaximumSize(QSize(30, 30))
-        self.SetColorGreen.setCheckable(True)
-        self.SetColorGreen.setAutoExclusive(True)
-        self.SetColorGreen.setEnabled(False)
-        self.SetColorGreen.setCursor(QCursor(Qt.PointingHandCursor))
+        self.sToolsEnd = QSpacerItem(10, 20, QSizePolicy.Fixed, QSizePolicy.Minimum)
 
-        self.PaletteTool.addWidget(self.SetColorGreen)
+        self.ToolsLayout.addItem(self.sToolsEnd)
 
-        self.SetColorPink = QPushButton(PluginDialog)
-        self.SetColorPink.setObjectName(u"SetColorPink")
-        self.SetColorPink.setMinimumSize(QSize(30, 30))
-        self.SetColorPink.setMaximumSize(QSize(30, 30))
-        self.SetColorPink.setCheckable(True)
-        self.SetColorPink.setAutoExclusive(True)
-        self.SetColorPink.setEnabled(False)
-        self.SetColorPink.setCursor(QCursor(Qt.PointingHandCursor))
 
-        self.PaletteTool.addWidget(self.SetColorPink)
+        self.MainLayout.addLayout(self.ToolsLayout)
 
-        self.SetColorNone = QPushButton(PluginDialog)
-        self.SetColorNone.setObjectName(u"SetColorNone")
-        self.SetColorNone.setMinimumSize(QSize(30, 30))
-        self.SetColorNone.setMaximumSize(QSize(30, 30))
-        self.SetColorNone.setCheckable(True)
-        self.SetColorNone.setAutoExclusive(True)
-        self.SetColorNone.setEnabled(False)
-        self.SetColorNone.setCursor(QCursor(Qt.PointingHandCursor))
+        self.sToolsBottom = QSpacerItem(20, 14, QSizePolicy.Minimum, QSizePolicy.Fixed)
 
-        self.PaletteTool.addWidget(self.SetColorNone)
+        self.MainLayout.addItem(self.sToolsBottom)
 
-        self.ToolsWidget.addLayout(self.PaletteTool)
+        self.MainLayout.setStretch(1, 8)
+        self.MainLayout.setStretch(2, 1)
+        self.MainLayout.setStretch(4, 1)
+        self.DialogSplitter.addWidget(self.MainFrame)
 
-        self.EndSpacer = QSpacerItem(10, 20, QSizePolicy.Fixed, QSizePolicy.Minimum)
-
-        self.ToolsWidget.addItem(self.EndSpacer)
-
-        self.ContentLayout.addLayout(self.ToolsWidget)
-
-        self.ToolsSpacer = QSpacerItem(20, 14, QSizePolicy.Minimum, QSizePolicy.Fixed)
-
-        self.ContentLayout.addItem(self.ToolsSpacer)
-
-        self.ContentLayout.setStretch(0, 8)
-        self.ContentLayout.setStretch(1, 1)
-        self.ContentLayout.setStretch(3, 1)
-
-        self.splitter.addWidget(self.ContentFrame)
-
-        self.MainLayout.setStretch(0, 3)
-        self.MainLayout.setStretch(1, 9)
-
-        self.splitter.setCollapsible(0,False)
-        self.splitter.setCollapsible(1,False)
-        self.MainLayout.addWidget(self.splitter)
-        self.PluginAdapter.addLayout(self.MainLayout)
+        self.vlPluginDialog.addWidget(self.DialogSplitter)
 
 
         self.retranslateUi(PluginDialog)
@@ -571,42 +317,4 @@ class Ui_PluginDialog(object):
         PluginDialog.setWindowTitle(i18n("Dialog"))
         self.ScriptsHeader.setText(i18n("TOOLKIT"))
         self.FiltersHeader.setText(i18n("FILTERS"))
-        self.FiltersGroup.setTitle("")
-        self.PrefixHeader.setText(i18n("PREFIXES"))
-        # self.PrefixSelect.setCurrentText("")
-        # self.PrefixSelect.setPlaceholderText(i18n("-"))
-        # self.FolderSelect.setPlaceholderText(i18n("-"))
-        self.FolderHeader.setText(i18n("FOLDERS"))
-        self.PaletteYellow.setText("")
-        self.PaletteBlue.setText("")
-        self.PaletteGreen.setText("")
-        self.PalettePink.setText("")
-        self.ModeToggle.setText(i18n("R"))
-        self.ModeToggle.setToolTip(i18n("Toggle recursive mode on/off"))
-        self.NameToggle.setToolTip(i18n("Switch between Prefix and Folder modes"))
-        self.NameToggle.setText(i18n("PREFIX"))
-        self.SetNameButton.setText(i18n("ADD"))
-        self.ClsNameButton.setText(i18n("CLEAR"))
-
-        self.SetColorYellow.setToolTip(i18n("Highlight function yellow"))
-        self.SetColorBlue.setToolTip(i18n("Highlight function blue"))
-        self.SetColorGreen.setToolTip(i18n("Highlight function green"))
-        self.SetColorPink.setToolTip(i18n("Highlight function pink"))
-        self.SetColorNone.setToolTip(i18n("Remove function highlight"))
-
-        self.SetColorYellow.setText("")
-        self.SetColorBlue.setText("")
-        self.SetColorGreen.setText("")
-        self.SetColorPink.setText("")
-        self.SetColorNone.setText("")
     # retranslateUi
-
-    def setProgress(self, progress):
-        if progress == 0:
-            self.progressBar.setVisible(False)
-        elif progress == 100:
-            self.progressBar.setVisible(False)
-            self.progressBar.setValue(0)
-        else:
-            self.progressBar.setVisible(True)
-            self.progressBar.setValue(progress)

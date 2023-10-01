@@ -378,29 +378,25 @@ class IdaCluDialog(QWidget):
             ida_utils.create_folder(label_norm)
 
         captured_addr = []
-        # gather only the selected function addresses
         if self.isDataSelected():
             indexes = [idx for idx in self.ui.rvTable.selectionModel().selectedRows()]
             fields = [idx.sibling(idx.row(), address_col).data() for idx in indexes]
 
             for idx, field in enumerate(fields):
-                # make sure fields in TreeView are not of <long> type
                 func_addr = int(field, base=16)
                 func_name = ida_shims.get_func_name(func_addr)
 
                 captured_addr.append(func_addr)
                 if self.ui.wLabelTool.getLabelMode() == 'prefix':
-                    # assumed that prefixes must contain delimiter
                     func_name_new = plg_utils.add_prefix(func_name, label_norm, False)
                     func_name_shadow = plg_utils.add_prefix(func_name, label_norm, True)
                     ida_shims.set_name(func_addr, func_name_new, idaapi.SN_CHECK)
                     self.ui.rvTable.model().setData(indexes[idx], func_name_shadow)
-                else:  # folder
+                else:  # == 'folder'
                     func_fldr = self.folders_funcs.get(func_addr, '/')
                     ida_utils.set_func_folder(func_addr, func_fldr, label_norm)
                     self.ui.rvTable.model().setData(indexes[idx], label_norm)
 
-        # if recursion mode is enabled - find all calees
         additional_addr = []
         if self.is_mode_recursion == True:
             for func_addr in captured_addr:
@@ -411,7 +407,7 @@ class IdaCluDialog(QWidget):
                 if label_mode == 'prefix':
                     func_name_new = plg_utils.add_prefix(func_name, label_norm, False)
                     ida_shims.set_name(func_addr, func_name_new, idaapi.SN_CHECK)
-                else:  # folder
+                else:  # == 'folder'
                     folder_src = self.folders_funcs.get(func_addr, '/')
                     ida_utils.set_func_folder(func_addr, folder_src, label_norm)
 

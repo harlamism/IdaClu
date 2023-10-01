@@ -114,8 +114,8 @@ class IdaCluDialog(QWidget):
             if cond:
                 elem.clicked.connect(meth)
         self.ui.wLabelTool.setModeHandler(self.toggleRecursion)
-        self.ui.wLabelTool.setSetHandler(self.addMerge)
-        self.ui.wLabelTool.setClsHandler(self.clsMerge)
+        self.ui.wLabelTool.setSetHandler(self.addLabel)
+        self.ui.wLabelTool.setClsHandler(self.clsLabel)
 
     def getFuncPrefs(self, is_dummy=False):
         pfx_afacts = ['%', 'sub_']
@@ -355,42 +355,50 @@ class IdaCluDialog(QWidget):
         if cell_data and cell_data.startswith('0x'):
             idaapi.jumpto(plg_utils.from_hex(cell_data))
 
-    def addMerge(self):
+    def updateFilters(self, label_mode):
+        label_name = None
+        if label_mode == 'folder':
+            label_name = self.ui.wLabelTool.getLabelName(prfx="/")
+            self.ui.wFolderFilter.addItemNew(label_name)
+        elif label_mode == 'prefix':
+            label_name = self.ui.wLabelTool.getLabelName(sufx="_")
+            self.ui.wPrefixFilter.addItemNew(label_name)
+        return label_name
+
+    def isDataSelected(self):
+        return self.ui.rvTable.selectionModel().hasSelection()
+
+    def addLabel(self):
         address_col = self.heads.index('Address')
-        merge_name = None
-        if self.env_desc.feat_folders and self.ui.wLabelTool.getLabelMode() == 'folder':
-            merge_name = self.ui.wLabelTool.getLabelName(prfx="/")
-            ida_utils.create_folder(merge_name)
-            self.ui.wFolderFilter.addItemNew(merge_name)
-        elif self.ui.wLabelTool.getLabelMode() == 'prefix':
-            merge_name = self.ui.wLabelTool.getLabelName(sufx="_")
-            self.ui.wPrefixFilter.addItemNew(merge_name)
+        label_mode = self.ui.wLabelTool.getLabelMode()
+        label_norm = self.updateFilters(label_mode)
+
+        if self.env_desc.feat_folders and label_mode == 'folder':
+            ida_utils.change_dir('/')
+            ida_utils.create_folder(label_norm)
 
         captured_addr = []
         # gather only the selected function addresses
-        if self.ui.rvTable.selectionModel().hasSelection():
+        if self.isDataSelected():
             indexes = [idx for idx in self.ui.rvTable.selectionModel().selectedRows()]
             fields = [idx.sibling(idx.row(), address_col).data() for idx in indexes]
 
-            func_dir = None
-            if self.env_desc.feat_folders:
-                func_dir = ida_dirtree.get_std_dirtree(ida_dirtree.DIRTREE_FUNCS)
-                func_dir.chdir('/')
             for idx, field in enumerate(fields):
                 # make sure fields in TreeView are not of <long> type
                 func_addr = int(field, base=16)
-                captured_addr.append(func_addr)
                 func_name = ida_shims.get_func_name(func_addr)
 
+                captured_addr.append(func_addr)
                 if self.ui.wLabelTool.getLabelMode() == 'prefix':
                     # assumed that prefixes must contain delimiter
-                    func_name_new = plg_utils.add_prefix(func_name, merge_name, False)
-                    func_name_shadow = plg_utils.add_prefix(func_name, merge_name, True)
+                    func_name_new = plg_utils.add_prefix(func_name, label_norm, False)
+                    func_name_shadow = plg_utils.add_prefix(func_name, label_norm, True)
                     ida_shims.set_name(func_addr, func_name_new, idaapi.SN_CHECK)
                     self.ui.rvTable.model().setData(indexes[idx], func_name_shadow)
                 else:  # folder
-                    func_dir.rename(func_name, '{}/{}'.format(merge_name, func_name))
-                    self.ui.rvTable.model().setData(indexes[idx], merge_name)
+                    func_fldr = self.folders_funcs.get(func_addr, '/')
+                    ida_utils.set_func_folder(func_addr, func_fldr, label_norm)
+                    self.ui.rvTable.model().setData(indexes[idx], label_norm)
 
         # if recursion mode is enabled - find all calees
         additional_addr = []
@@ -400,11 +408,12 @@ class IdaCluDialog(QWidget):
 
             for func_addr in additional_addr:
                 func_name = ida_shims.get_func_name(func_addr)
-                if self.ui.wLabelTool.getLabelMode() == 'prefix':
-                    func_name_new = merge_name + func_name
+                if label_mode == 'prefix':
+                    func_name_new = plg_utils.add_prefix(func_name, label_norm, False)
                     ida_shims.set_name(func_addr, func_name_new, idaapi.SN_CHECK)
                 else:  # folder
-                    func_dir.rename(func_name, '{}/{}'.format(merge_name, func_name))
+                    folder_src = self.folders_funcs.get(func_addr, '/')
+                    ida_utils.set_func_folder(func_addr, folder_src, label_norm)
 
         if self.env_desc.feat_folders:
             self.folders = ida_utils.get_func_dirs('/')
@@ -412,7 +421,7 @@ class IdaCluDialog(QWidget):
 
         ida_utils.refresh_ui()
 
-    def clsMerge(self):
+    def clsLabel(self):
         if self.ui.rvTable.selectionModel().hasSelection():
             indexes = [index for index in self.ui.rvTable.selectionModel().selectedRows()]
             data = [index.sibling(index.row(), self.getFuncAddrCol()).data() for index in indexes]
@@ -432,14 +441,9 @@ class IdaCluDialog(QWidget):
                         ida_shims.set_name(func_addr, func_name_new, idaapi.SN_NOWARN)
                         self.ui.rvTable.model().setData(indexes[idx], func_name_new)
                 elif self.ui.wLabelTool.getLabelMode() == 'folder':
-                    func_dir = ida_dirtree.get_std_dirtree(ida_dirtree.DIRTREE_FUNCS)
-                    func_dir.chdir('/')
-                    if func_addr in self.folders_funcs:
-                        func_fldr = self.folders_funcs[func_addr]
-                        func_path_old = '{}/{}'.format(func_fldr, func_name)
-                        func_path_new = '/{}'.format(func_name)
-                        func_dir.rename(func_path_old, func_path_new)
-                        self.ui.rvTable.model().setData(indexes[idx], '/')
+                    func_fldr = self.folders_funcs.get(func_addr, '/')
+                    ida_utils.set_func_folder(func_addr, func_fldr, '/')
+                    self.ui.rvTable.model().setData(indexes[idx], '/')
                 else:
                     ida_shims.msg('ERROR: unknown label mode')
 

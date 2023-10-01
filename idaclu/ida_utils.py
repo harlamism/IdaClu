@@ -213,3 +213,29 @@ def get_dir_funcs(folders):
         idx += 1
 
     return funcs
+
+def get_func_name(func_ref):
+    func_name = None
+    if isinstance(func_ref, str):
+        func_name = func_ref
+    elif isinstance(func_ref, int):
+        func_name = ida_shims.get_func_name(func_ref)
+    else:
+        raise ValueError("Invalid func reference")
+    return func_name
+
+def get_folder_norm(folder):
+    return '' if folder == '/' else folder
+
+def set_func_folder(func_ref, folder_src, folder_dst):
+    func_name = get_func_name(func_ref)
+    func_src = '{}/{}'.format(get_folder_norm(folder_src), func_name)
+    func_dst = '{}/{}'.format(get_folder_norm(folder_dst), func_name)
+
+    func_dir = ida_dirtree.get_std_dirtree(ida_dirtree.DIRTREE_FUNCS)
+    func_dir.chdir('/')
+    func_dir.rename(func_src, func_dst)
+
+def change_dir(dir):
+    func_dir = ida_dirtree.get_std_dirtree(ida_dirtree.DIRTREE_FUNCS)
+    func_dir.chdir(dir)

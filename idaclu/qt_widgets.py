@@ -118,8 +118,13 @@ class LabelTool(QWidget):
         self.SetLabelButton.setEnabled(state)
         self.ClsLabelButton.setEnabled(state)
 
-    def getLabelName(self):
-        return self._edit.text()
+    def getLabelName(self, prfx='', sufx=''):
+        text = self._edit.text()
+        if not text.startswith(prfx):
+            text = "{}{}".format(prfx, text)
+        if not text.endswith(sufx):
+            text = "{}{}".format(text, sufx)
+        return text
 
     def getLabelMode(self):
         return self.data[self.label_mode]['caption']

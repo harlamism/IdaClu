@@ -357,11 +357,13 @@ class IdaCluDialog(QWidget):
 
     def addMerge(self):
         address_col = self.heads.index('Address')
-        merge_name = self.ui.wLabelTool.getLabelName()
+        merge_name = None
         if self.env_desc.feat_folders and self.ui.wLabelTool.getLabelMode() == 'folder':
+            merge_name = self.ui.wLabelTool.getLabelName(prfx="/")
             ida_utils.create_folder(merge_name)
-            self.ui.wFolderFilter.addItemNew("/{}".format(merge_name))
+            self.ui.wFolderFilter.addItemNew(merge_name)
         elif self.ui.wLabelTool.getLabelMode() == 'prefix':
+            merge_name = self.ui.wLabelTool.getLabelName(sufx="_")
             self.ui.wPrefixFilter.addItemNew(merge_name)
 
         captured_addr = []
@@ -387,8 +389,8 @@ class IdaCluDialog(QWidget):
                     ida_shims.set_name(func_addr, func_name_new, idaapi.SN_CHECK)
                     self.ui.rvTable.model().setData(indexes[idx], func_name_shadow)
                 else:  # folder
-                    func_dir.rename(func_name, '/{}/{}'.format(merge_name, func_name))
-                    self.ui.rvTable.model().setData(indexes[idx], str("/" + merge_name))
+                    func_dir.rename(func_name, '{}/{}'.format(merge_name, func_name))
+                    self.ui.rvTable.model().setData(indexes[idx], merge_name)
 
         # if recursion mode is enabled - find all calees
         additional_addr = []
@@ -402,7 +404,7 @@ class IdaCluDialog(QWidget):
                     func_name_new = merge_name + func_name
                     ida_shims.set_name(func_addr, func_name_new, idaapi.SN_CHECK)
                 else:  # folder
-                    func_dir.rename(func_name, '/{}/{}'.format(merge_name, func_name))
+                    func_dir.rename(func_name, '{}/{}'.format(merge_name, func_name))
 
         if self.env_desc.feat_folders:
             self.folders = ida_utils.get_func_dirs('/')

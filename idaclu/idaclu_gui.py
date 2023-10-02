@@ -14,6 +14,7 @@ from idaclu.qt_shims import (
     QCoreApplication,
     QCursor,
     Qt,
+    QtCore,
     QFrame,
     QIcon,
     QLineEdit,
@@ -81,6 +82,7 @@ class IdaCluDialog(QWidget):
         self.sel_dirs = []
         self.sel_prfx = []
         self.sel_colr = []
+        self.rec_indx = {}
 
         self.heads = ['Name', 'Address', 'Size', 'Chunks', 'Nodes', 'Edges', 'Comment', 'Color']
         if env_desc.feat_folders:
@@ -284,12 +286,13 @@ class IdaCluDialog(QWidget):
             sdatt[key] = sorted(enumerate(value), key=sort_with_progress(overall_count, mut_counter))
 
         global_index = 0
-        for dt in sdatt:
+        for i, dt in enumerate(sdatt):
             self.items.append(ResultNode("{} ({})".format(dt, len(sdatt[dt]))))
-            for (idx, tt) in sdatt[dt]:
+            for j, (idx, tt) in enumerate(sdatt[dt]):
                 self.items[-1].addChild(ResultNode(list(tt.values())))
                 global_index += 1
                 finished = 80 + int(15 * (global_index / float(overall_count)))
+                self.rec_indx[int(tt['func_addr'], 16)] = (i, j)
                 self.ui.wProgressBar.updateProgress(finished)
 
 
@@ -404,12 +407,19 @@ class IdaCluDialog(QWidget):
 
             for func_addr in additional_addr:
                 func_name = ida_shims.get_func_name(func_addr)
+
+                id_group, id_child = self.rec_indx[func_addr]
+                id_col = self.heads.index('Address')
+                indx_group = self.ui.rvTable.model().index(id_group, 0, QtCore.QModelIndex())
+                indx_child = self.ui.rvTable.model().index(id_child, id_col, indx_group)
                 if label_mode == 'prefix':
                     func_name_new = plg_utils.add_prefix(func_name, label_norm, False)
                     ida_shims.set_name(func_addr, func_name_new, idaapi.SN_CHECK)
+                    self.ui.rvTable.model().setData(indx_child, func_name_new)
                 else:  # == 'folder'
                     folder_src = self.folders_funcs.get(func_addr, '/')
                     ida_utils.set_func_folder(func_addr, folder_src, label_norm)
+                    self.ui.rvTable.model().setData(indx_child, label_norm)
 
         if self.env_desc.feat_folders:
             self.folders = ida_utils.get_func_dirs('/')
@@ -476,14 +486,31 @@ class IdaCluDialog(QWidget):
         else:
             ida_shims.msg('ERROR: unknown palette button')
 
+        captured_addr = []
         if self.ui.rvTable.selectionModel().hasSelection():
             indexes = [index for index in self.ui.rvTable.selectionModel().selectedRows()]
             data = [index.sibling(index.row(), self.getFuncAddrCol()).data() for index in indexes]
 
             for idx, va_str in enumerate(data):
                 va = int(va_str, base=16)
+                captured_addr.append(va)
                 ida_shims.set_color(va, idc.CIC_FUNC, color.get_to_int())
                 self.ui.rvTable.model().setData(indexes[idx], color.get_to_str())
+
+        additional_addr = []
+        if self.is_mode_recursion == True:
+            for func_addr in captured_addr:
+                additional_addr.extend(ida_utils.recursive_prefix(func_addr))
+
+            for func_addr in additional_addr:
+                id_group, id_child = self.rec_indx[func_addr]
+                id_col = self.heads.index('Address')
+                indx_group = self.ui.rvTable.model().index(id_group, 0, QtCore.QModelIndex())
+                indx_child = self.ui.rvTable.model().index(id_child, id_col, indx_group)
+                ida_shims.set_color(func_addr, idc.CIC_FUNC, color.get_to_int())
+                self.ui.rvTable.model().setData(indx_child, color.get_to_str())
+
+        ida_utils.refresh_ui()
 
     def swapPosition(self):
         layout = self.ui.DialogSplitter

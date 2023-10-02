@@ -487,11 +487,9 @@ class IdaCluDialog(QWidget):
 
     def swapPosition(self):
         layout = self.ui.DialogSplitter
-        if not self.env_desc.feat_ida6:
-            self.ui.SidebarFrame.setParent(None)
-            self.ui.MainFrame.setParent(None)
-        else:
-            self.clearLayout(layout)
+
+        self.ui.SidebarFrame.setParent(None)
+        self.ui.MainFrame.setParent(None)
 
         if not self.is_sidebar_on_left:
             layout.insertWidget(0, self.ui.SidebarFrame)
@@ -504,17 +502,6 @@ class IdaCluDialog(QWidget):
         layout.setCollapsible(1,False)
 
         self.is_sidebar_on_left = not self.is_sidebar_on_left
-
-    def clearLayout(self, layout):
-        if layout is not None:
-            while layout.count():
-                item = layout.takeAt(0)
-                widget = item.widget()
-                if widget is not None:
-                    widget.deleteLater()
-                # else:
-                #     self.clearLayout(item.layout())
-                del item
 
     def showFilters(self):
         if not self.is_filters_shown:

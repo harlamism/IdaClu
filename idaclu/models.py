@@ -20,7 +20,9 @@ class ResultNode(object):
         self._row = 0
 
     def data(self, column):
-        if column >= 0 and column < len(self._data):
+        if column == 0:
+            return str(self._data[column]).replace('%', '_')
+        elif column >= 1 and column < len(self._data):
             return self._data[column]
 
     def columnCount(self):

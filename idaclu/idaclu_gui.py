@@ -392,9 +392,8 @@ class IdaCluDialog(QWidget):
                 captured_addr.append(func_addr)
                 if self.ui.wLabelTool.getLabelMode() == 'prefix':
                     func_name_new = plg_utils.add_prefix(func_name, label_norm, False)
-                    func_name_shadow = plg_utils.add_prefix(func_name, label_norm, True)
                     ida_shims.set_name(func_addr, func_name_new, idaapi.SN_CHECK)
-                    self.ui.rvTable.model().setData(indexes[idx], func_name_shadow)
+                    self.ui.rvTable.model().setData(indexes[idx], func_name_new)
                 else:  # == 'folder'
                     func_fldr = self.folders_funcs.get(func_addr, '/')
                     ida_utils.set_func_folder(func_addr, func_fldr, label_norm)

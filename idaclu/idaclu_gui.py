@@ -372,41 +372,17 @@ class IdaCluDialog(QWidget):
         return self.ui.rvTable.selectionModel().hasSelection()
 
     def addLabel(self):
-        address_col = self.heads.index('Address')
-        label_mode = self.ui.wLabelTool.getLabelMode()
-        label_norm = self.updateFilters(label_mode)
-
-        if self.env_desc.feat_folders and label_mode == 'folder':
-            ida_utils.change_dir('/')
-            ida_utils.create_folder(label_norm)
-
-        captured_addr = []
         if self.isDataSelected():
-            indexes = [idx for idx in self.ui.rvTable.selectionModel().selectedRows()]
-            fields = [idx.sibling(idx.row(), address_col).data() for idx in indexes]
+            label_mode = self.ui.wLabelTool.getLabelMode()
+            label_norm = self.updateFilters(label_mode)
 
-            for idx, field in enumerate(fields):
-                func_addr = int(field, base=16)
+            if self.env_desc.feat_folders and label_mode == 'folder':
+                ida_utils.change_dir('/')
+                ida_utils.create_folder(label_norm)
+
+            addr_queue = self.getLabelAddrSet()
+            for func_addr in addr_queue:
                 func_name = ida_shims.get_func_name(func_addr)
-
-                captured_addr.append(func_addr)
-                if self.ui.wLabelTool.getLabelMode() == 'prefix':
-                    func_name_new = plg_utils.add_prefix(func_name, label_norm, False)
-                    ida_shims.set_name(func_addr, func_name_new, idaapi.SN_CHECK)
-                    self.ui.rvTable.model().setData(indexes[idx], func_name_new)
-                else:  # == 'folder'
-                    func_fldr = self.folders_funcs.get(func_addr, '/')
-                    ida_utils.set_func_folder(func_addr, func_fldr, label_norm)
-                    self.ui.rvTable.model().setData(indexes[idx], label_norm)
-
-        additional_addr = []
-        if self.is_mode_recursion == True:
-            for func_addr in captured_addr:
-                additional_addr.extend(ida_utils.recursive_prefix(func_addr))
-
-            for func_addr in additional_addr:
-                func_name = ida_shims.get_func_name(func_addr)
-
                 id_group, id_child = self.rec_indx[func_addr]
                 id_col = self.heads.index('Address')
                 indx_group = self.ui.rvTable.model().index(id_group, 0, QtCore.QModelIndex())
@@ -420,11 +396,11 @@ class IdaCluDialog(QWidget):
                     ida_utils.set_func_folder(func_addr, folder_src, label_norm)
                     self.ui.rvTable.model().setData(indx_child, label_norm)
 
-        if self.env_desc.feat_folders:
-            self.folders = ida_utils.get_func_dirs('/')
-            self.folders_funcs = ida_utils.get_dir_funcs(self.folders)
+            if self.env_desc.feat_folders:
+                self.folders = ida_utils.get_func_dirs('/')
+                self.folders_funcs = ida_utils.get_dir_funcs(self.folders)
 
-        ida_utils.refresh_ui()
+            ida_utils.refresh_ui()
 
     def clsLabel(self):
         if self.ui.rvTable.selectionModel().hasSelection():
@@ -469,39 +445,26 @@ class IdaCluDialog(QWidget):
             return 1
 
     def changeFuncColor(self):
-        sender_button = self.sender()
-        btn_name = sender_button.objectName()
-        color = None
-        if btn_name == 'SetColorBlue':
-            color = plg_utils.RgbColor((199,255,255), 'blue')
-        elif btn_name == 'SetColorYellow':
-            color = plg_utils.RgbColor((255,255,191), 'yellow')
-        elif btn_name == 'SetColorGreen':
-            color = plg_utils.RgbColor((191,255,191), 'green')
-        elif btn_name == 'SetColorPink':
-            color = plg_utils.RgbColor((255,191,239), 'pink')
-        elif btn_name == 'SetColorNone':
-            color = plg_utils.RgbColor((255,255,255), 'white')
-        else:
-            ida_shims.msg('ERROR: unknown palette button')
+        if self.isDataSelected():
+            sender_button = self.sender()
+            btn_name = sender_button.objectName()
+            color = None
+            if btn_name == 'SetColorBlue':
+                color = plg_utils.RgbColor((199,255,255), 'blue')
+            elif btn_name == 'SetColorYellow':
+                color = plg_utils.RgbColor((255,255,191), 'yellow')
+            elif btn_name == 'SetColorGreen':
+                color = plg_utils.RgbColor((191,255,191), 'green')
+            elif btn_name == 'SetColorPink':
+                color = plg_utils.RgbColor((255,191,239), 'pink')
+            elif btn_name == 'SetColorNone':
+                color = plg_utils.RgbColor((255,255,255), 'white')
+            else:
+                ida_shims.msg('ERROR: unknown palette button')
 
-        captured_addr = []
-        if self.ui.rvTable.selectionModel().hasSelection():
-            indexes = [index for index in self.ui.rvTable.selectionModel().selectedRows()]
-            data = [index.sibling(index.row(), self.getFuncAddrCol()).data() for index in indexes]
+            addr_queue = self.getLabelAddrSet()
 
-            for idx, va_str in enumerate(data):
-                va = int(va_str, base=16)
-                captured_addr.append(va)
-                ida_shims.set_color(va, idc.CIC_FUNC, color.get_to_int())
-                self.ui.rvTable.model().setData(indexes[idx], color.get_to_str())
-
-        additional_addr = []
-        if self.is_mode_recursion == True:
-            for func_addr in captured_addr:
-                additional_addr.extend(ida_utils.recursive_prefix(func_addr))
-
-            for func_addr in additional_addr:
+            for func_addr in addr_queue:
                 id_group, id_child = self.rec_indx[func_addr]
                 id_col = self.heads.index('Address')
                 indx_group = self.ui.rvTable.model().index(id_group, 0, QtCore.QModelIndex())
@@ -509,7 +472,25 @@ class IdaCluDialog(QWidget):
                 ida_shims.set_color(func_addr, idc.CIC_FUNC, color.get_to_int())
                 self.ui.rvTable.model().setData(indx_child, color.get_to_str())
 
-        ida_utils.refresh_ui()
+            ida_utils.refresh_ui()
+
+    def getLabelAddrSet(self):
+        id_col = self.heads.index('Address')
+        indexes = [idx for idx in self.ui.rvTable.selectionModel().selectedRows()]
+        fields = [idx.sibling(idx.row(), id_col).data() for idx in indexes]
+
+        addr_queue = set()
+        for idx, field in enumerate(fields):
+            func_addr = int(field, base=16)
+            addr_queue.add(func_addr)
+
+        addr_calees = set()
+        if self.is_mode_recursion == True:
+            for func_addr in addr_queue:
+                addr_calees.update(ida_utils.recursive_prefix(func_addr))
+
+        addr_queue.update(addr_calees)
+        return addr_queue
 
     def swapPosition(self):
         layout = self.ui.DialogSplitter

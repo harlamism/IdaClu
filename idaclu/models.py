@@ -1,5 +1,6 @@
 from idaclu.qt_shims import (
     QAbstractItemModel,
+    QBrush,
     QColor,
     QModelIndex,
     Qt
@@ -60,6 +61,7 @@ class ResultModel(QAbstractItemModel):
         super(ResultModel, self).__init__()
         self._root = ResultNode(heads)
         self.env_desc = env_desc
+        self.color_col = 8 if env_desc.lib_qt == 'pyqt5' else 7
         for node in nodes:
             self._root.addChild(node)
 
@@ -111,11 +113,16 @@ class ResultModel(QAbstractItemModel):
 
         elif role == Qt.BackgroundRole:
             node = index.internalPointer()
-            rgb_string = node.data(8)
+            rgb_string = node.data(self.color_col)
             if rgb_string and rgb_string != 'rgb(255,255,255)':
                 rgb_values = rgb_string.replace("rgb(", "").replace(")", "")
                 r, g, b = tuple(map(int, rgb_values.split(",")))
-                return QColor(r, g, b)
+                color = QColor(r, g, b)
+                if self.env_desc.lib_qt == 'pyqt5':
+                    return color
+                elif self.env_desc.lib_qt == 'pyside':
+                    brush = QBrush(color)
+                    return brush
         return None
 
     def setHeaderData(self, section, orientation, value, role=Qt.EditRole):
@@ -140,14 +147,19 @@ class ResultModel(QAbstractItemModel):
         node = index.internalPointer()
         if role == Qt.EditRole:
             col = 1 if value.startswith('/') else 0
-            col = 8 if value.startswith('rgb') else col
+            if value.startswith('rgb'):
+                col = self.color_col
             result = node.setData(col, value)
             if result:
                 if self.env_desc.lib_qt == 'pyqt5':
-                    self.dataChanged.emit(index.sibling(index.row(), col), index.sibling(index.row(), col), [Qt.EditRole])
+                    if col == 8:
+                        self.dataChanged.emit(index.sibling(index.row(), 0), index.sibling(index.row(), 7), [Qt.BackgroundRole])
+                    else:
+                        self.dataChanged.emit(index.sibling(index.row(), col), index.sibling(index.row(), col), [Qt.EditRole])
                 elif self.env_desc.lib_qt == 'pyside':
-                    self.dataChanged.emit(index.sibling(index.row(), col), index.sibling(index.row(), col))
-            if col == 8:
-                self.dataChanged.emit(index.sibling(index.row(), 0), index.sibling(index.row(), 7), [Qt.BackgroundRole])
+                    if col == 7:
+                        self.dataChanged.emit(index.sibling(index.row(), 0), [Qt.BackgroundRole])
+                    else:
+                        self.dataChanged.emit(index.sibling(index.row(), col), [Qt.EditRole])
             return True
         return False

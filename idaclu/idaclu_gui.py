@@ -412,11 +412,7 @@ class IdaCluDialog(QWidget):
                 func_name = ida_shims.get_func_name(func_addr)
                 if self.ui.wLabelTool.getLabelMode() == 'prefix':
                     func_prefs = ida_utils.get_func_prefs(func_name, True, True)
-                    if len(func_prefs) == 1 and func_prefs[0] == 'sub_':
-                        pass
-                        # ida_shims.set_name(func_addr, "", idaapi.SN_NOWARN)
-                        # clear all scenario ;)
-                    else:
+                    if len(func_prefs) >= 1 and func_prefs[0] != 'sub_':
                         # get last prefix
                         name_token = str(func_prefs[0]).replace('_', '%')
                         func_name_new = func_name.replace(name_token, '')

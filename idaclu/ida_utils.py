@@ -20,14 +20,18 @@ from idaclu import ida_shims
 
 
 def get_func_prefs(func_name, is_uscore=False, is_dummy=False):
-    prefs = set()
+    prefs = []
+    seen = set()
     dummy_pref = 'sub_'  # special prefix w/o '%'
-    if is_dummy and dummy_pref in func_name:
-        prefs.add(dummy_pref)
-    func_prfx = func_name.split('%')[:-1]
-    for p in func_prfx:
-        prefs.add('{}_'.format(p))
-    return list(prefs)
+    func_prfx = func_name.split('%')
+    for p in func_prfx[:-1]:
+        pref = '{}_'.format(p)
+        if pref not in seen:
+            prefs.append(pref)
+            seen.add(pref)
+    if is_dummy and dummy_pref in func_prfx[-1] and dummy_pref not in seen:
+        prefs.append(dummy_pref)
+    return prefs
 
 def refresh_ui():
     ida_shims.refresh_idaview_anyway()

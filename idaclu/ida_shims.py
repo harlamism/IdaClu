@@ -803,8 +803,11 @@ def get_segm_start(ea):
 
 
 def insn_t():
-    fn = _get_fn_by_version(idaapi, 'insn_t', 'cmd', idaapi)
-    return fn()
+    prop = _get_fn_by_version(idaapi, 'insn_t', 'cmd', idaapi)
+    if idaapi.IDA_SDK_VERSION >= 700:
+        return prop()
+    else:
+        return prop
 
 
 def decode_insn(ea):

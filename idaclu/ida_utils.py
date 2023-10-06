@@ -47,7 +47,6 @@ def create_folder(merge_name):
 def graph_down(ea, path=set()):
     path.add(ea)
     call_instructions = []
-    instruction_info = ida_shims.insn_t()
     for address in idautils.FuncItems(ea):
         if not ida_shims.decode_insn(address):
             continue

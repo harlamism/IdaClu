@@ -33,9 +33,7 @@ def get_data(func_gen=None, env_desc=None, plug_params=None):
     for func_addr in func_gen():
         func_desc = idaapi.get_func(func_addr)
         for head in idautils.Heads(ida_shims.start_ea(func_desc), ida_shims.end_ea(func_desc)):
-            insn = idaapi.insn_t()
             for opnd_index in range(idaapi.UA_MAXOP):
-                opnd = ida_shims.get_operands(insn)[opnd_index]
                 opnd_type = ida_shims.get_operand_type(head, opnd_index)
                 if opnd_type in [idaapi.o_void, idc.o_mem]:
                     break

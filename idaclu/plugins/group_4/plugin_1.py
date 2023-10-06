@@ -10,7 +10,7 @@ import drcov
 SCRIPT_NAME = 'Covered Functions'
 SCRIPT_TYPE = 'func'
 SCRIPT_VIEW = 'tree'
-SCRIPT_ARGS = [('file_name', 'file')]
+SCRIPT_ARGS = [('filePath', 'file_path', 'input the file path')]
 
 
 def find_function(block_start, function_ranges):
@@ -41,7 +41,14 @@ def get_data(func_gen=None, env_desc=None, plug_params=None):
         function_ranges.append((func_addr, func_addr + func_size))
         unseen_functions.append(func_addr)
 
-    x = drcov.DrcovData(plug_params['file_name'])
+    x = None
+    file_path = plug_params['file_path']
+    try:
+        x = drcov.DrcovData(file_path)
+    except IOError:
+        ida_shims.msg("ERROR: Cannot open coverage file: {}".format(file_path))
+        return REPORT['data']
+
     coverage_blocks = x.get_offset_blocks(env_desc.ida_module)
     imagebase = idaapi.get_imagebase()
 

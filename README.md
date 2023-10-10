@@ -3,7 +3,7 @@
 ***IdaClu*** is an ***IDA Pro*** plugin with a straightforward 3-step loop pipeline:
 
 1. Find similarities in functions;
-2. Label grouped functions together;
+2. Label grouped functions in bulk;
 3. Repeat step 1 for labeled functions.
 
 The distinctive feature of the plugin lies in ***"how"*** of search and labeling.
@@ -14,18 +14,18 @@ The distinctive feature of the plugin lies in ***"how"*** of search and labeling
 
 ## The Purpose
 
-In addition to the plugin ecosystem, ***IDA Pro*** user community creates a wealth of incredible scripts, varying in complexity. Some could greatly benefit from standardized input/output data format and *GUI*-interface. However, due to time constraints, relative complexity of learning ***PyQt/PySide*** and the challenge of navigating several backward-incompatible versions of the ***IDAPython API*** many community members are unable to support these efforts. As a result, even the best of us sometimes resort to parsing custom data formats from text files or *output window* of ***IDA***.
+In addition to the plugin ecosystem, the ***IDA*** user community creates a wealth of incredible scripts, varying in complexity. Some could greatly benefit from standardized input/output data format and *GUI*-interface. However, due to time constraints, the relative complexity of learning ***PyQt/PySide***, and the challenge of navigating several backward-incompatible versions of the ***IDAPython API*** many community members are unable to support these efforts. As a result, even the best of us sometimes resort to parsing custom data formats from text files or *output window* of ***IDA***.
 
 ***IdaClu*** serves as a ***tree/table view*** for ***IDAPython*** scripts.  
 Providing the following features:
 
 - labeling the functions with any combination of *prefix-folder-color*
 - filtering the input/output
-- using progress bar indicator
+- using the progress bar indicator
 - using the output of other scripts
 - providing the output to other scripts
 
-***IDAPython***-scripts serve as *sub-plugins* for ***IdaClu*** if they follow several conventions of how script should be structured. One core intention is to minimize this impact.
+***IDAPython***-scripts serve as *sub-plugins* for ***IdaClu*** if they follow several conventions of how the script should be structured. One core intention is to minimize this impact.
 
 *The plugin* comes with a set of *x18* simplistic and handy scripts available out of the box. They form the basis and make ***IdaClu*** useful as a standalone tool. So support of the community is not a "must".
 
@@ -63,7 +63,7 @@ Scripts are grouped, and while most names are self-explanatory, some may need ex
 
 ![ui](./img/ui.png)
 The user interface intentionally follows [***Miller's Law***](https://en.wikipedia.org/wiki/Miller%27s_law) in *UX* - "The immediate memory span of people is limited to approximately seven items, plus or minus two."  
-Here's the breakdown of main widgets:
+Here's the breakdown of the main widgets:
 
 1. ***Toolkit*** - scrollable area with buttons for recognized ***IDAPython*** scripts
 2. ***View*** - table-based view for script output, function selection, and rendering current labels
@@ -78,10 +78,10 @@ Here's the breakdown of main widgets:
 ### Tips
 
 1. ***IdaClu*** aims to incorporate new features from new ***IDA***-versions while maintaining *version-agnostic* approach. The solution is *graceful degradation*. So the *UI* will adapt to older ***IDA*** versions, excluding unsupported features.
-2. Double-clicking any row in the tree view navigates to corresponding function in ***IDA***
-3. The ***filter*** widget toggles collapse with header click.
+2. Double-clicking any row in the tree view navigates to the corresponding function in ***IDA***
+3. The ***filter*** widget toggles collapse with a header click.
 4. The ***toolkit*** widget header click swaps ***tree-view*** and ***sidebar*** with places.
-5. ***Rename*** context-menu allows to make cutom changes in selected function name.
+5. ***Rename*** context-menu allows to make custom changes in the selected function name.
 
 ## Setup
 
@@ -132,11 +132,11 @@ The plugin serves as a *GUI* for scripts without one. By following scripting con
 
 ### Script Description
 
-The following block is mandatory and is used to register script in ***IdaClu***:
+The following block is mandatory and is used to register the script in ***IdaClu***:
 
 ```python
 SCRIPT_NAME = 'Xref Count'  # arbitrary name that will appear on the corresponding button
-SCRIPT_TYPE = 'func'  # 'func' or 'custom' depending on whether the script iterating on functions or some other data structures to produce the output
+SCRIPT_TYPE = 'func'  # 'func' or 'custom' depending on whether the script iterates on functions or some other data structures to produce the output
 SCRIPT_VIEW = 'tree'  # 'tree' is the only currently supported view, 'table' is to be added
 SCRIPT_ARGS = []  # experimental feature, supports tuples of the form ('<control_name>', '<control_type>', '<control_placeholder>')
 ```
@@ -162,7 +162,7 @@ def get_data(progress_callback=None, env_desc=None, plug_params=None):
 
 ### Execution Environment
 
-If the script logic depends on specific IDA configuration, the ***IdaClu*** plugin can offer the following properties in the ***env_desc*** object:
+If the script logic depends on a specific IDA configuration, the ***IdaClu*** plugin can offer the following properties in the ***env_desc*** object:
 
 ```text
 - feat_bookmarks
@@ -199,11 +199,11 @@ plug_params['<control_name>']
 
 ### Return Value
 
-For hierarchical output data, script should return ***dictionary of lists***.  
+For hierarchical output data, the script should return ***dictionary of lists***.  
 *Keys* of this dictionary are function group names - collapsible elements of *tree view*.  
 *Vals* of this dictionary are *either-or*:
 
-- list of function adresses (simple case)
+- list of function addresses (simple case)
 - list of tuples `(<function_address>, <comment>)` (advanced case)
 
 ### Remarks
@@ -211,7 +211,7 @@ For hierarchical output data, script should return ***dictionary of lists***.
 However the rest is up to the author of the certain script,
 there are several optional tips:
 
-1. Each script should be assigned to certain script group. A script group is essentially a folder - ***plugins/idaclu/plugins/\<plugin_group_folder\>/*** containing an ***\_\_init\_\_.py*** file with a single string:
+1. Each script should be assigned to a certain script group. A script group is essentially a folder - ***plugins/idaclu/plugins/\<plugin_group_folder\>/*** containing an ***\_\_init\_\_.py*** file with a single string:
 
     ```python
     PLUGIN_GROUP_NAME = '<arbitrary_name>'
@@ -234,7 +234,7 @@ there are several optional tips:
         debug()
     ```
 
-In case anything left uncovered in this ***README***, refer to example-scripts or contact the ***IdaClu*** author.
+In case anything is left uncovered in this ***README***, refer to example scripts or contact the ***IdaClu*** author.
 
 ## Compatibility
 
@@ -250,13 +250,13 @@ In case anything left uncovered in this ***README***, refer to example-scripts o
   5. *IDA Pro v7.6, MacOS Ventura v13.2.1*
 
 Other ***IDA*** versions can be added as test environments upon request.  
-In order to be cross-compatible ***IdaClu*** relies on ***PyQt*** and ***IdaPython*** shims.  
+To be cross-compatible ***IdaClu*** relies on ***PyQt*** and ***IdaPython*** shims.  
 Scripts bundled with ***IdaClu*** currently are ***PE-first*** and ***Intel x86/x64-first*** due to the author's work specifics.
 
 ## Upcoming Changes
 
 - table view for the scripts that output non-hierarchical data
-- several types controls to provide input to scripts
+- several types of controls to provide input to scripts
 - lots of code optimizations
 - sort data in columns by clicking the column headers for tree/table view
 - a more flexible API for the scripts
@@ -272,8 +272,8 @@ Scripts bundled with ***IdaClu*** currently are ***PE-first*** and ***Intel x86/
 - folder labels with hierarchy
 - button to clear all labels at once
 
-Feel free to come up with your own ideas/proposals.  
-They will be carefully considered and their implementation are highly likely to be included in upcoming plugin releases.
+Feel free to come up with your ideas/proposals.  
+They will be carefully considered and their implementation is highly likely to be included in upcoming plugin releases.
 
 ## Known bugs
 
@@ -285,7 +285,7 @@ They will be carefully considered and their implementation are highly likely to 
 - Experimental "Code Coverage" plugin fails to load
 - Explicit folder filtering with `"/"` as a parameter does not work as expected
 - Labels are still present in filters after being removed from .idb
-- In recursive mode the function can be prefixed multiple times
+- In recursive mode, the function can be prefixed multiple times
 - Recursive mode is not considered while highlighting with color
 
 ## Acknowledgements

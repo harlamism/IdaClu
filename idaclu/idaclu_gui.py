@@ -313,7 +313,7 @@ class IdaCluDialog(QWidget):
 
     def updatePb(self, curr_idx, total_count):
         finished = int(70 * (curr_idx / float(total_count)))
-        self.ui.worker.updateProgress.emit(finished)
+        self.ui.wProgressBar.updateProgress(finished)
 
     def updatePbFunc(self):
         self.sel_dirs = self.ui.wFolderFilter.getData()

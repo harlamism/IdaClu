@@ -35,13 +35,20 @@ def get_data(func_gen=None, env_desc=None, plug_params=None):
         for head in idautils.Heads(ida_shims.start_ea(func_desc), ida_shims.end_ea(func_desc)):
             for opnd_index in range(idaapi.UA_MAXOP):
                 opnd_type = ida_shims.get_operand_type(head, opnd_index)
-                if opnd_type in [idaapi.o_void, idc.o_mem]:
+                if opnd_type in [idaapi.o_void]:
                     break
+                if opnd_type in [idaapi.o_reg, idaapi.o_phrase]:
+                    opnd_str = ida_shims.print_operand(head, opnd_index)
+                    if opnd_str in ['rsp', 'esp', 'rbp', 'ebp']:
+                        break
                 if opnd_type == idc.o_imm:
                     opnd_val = ida_shims.get_operand_value(head, opnd_index)
-                    opnd_str = ida_shims.print_operand(head, opnd_index)
-                    if opnd_str.startswith('offset'):
-                        break
+                    if ida_shims.is_loaded(opnd_val):
+                        continue
+
+                    # avoiding values that can be interpreted as addresses
+                    # within the current sample:
+                    #   SEH-handlers, callback-arguments, string-offsets, etc.
 
                     opnd_key = "const: {} / {}".format(opnd_val, hex(opnd_val))
                     report['data'][opnd_key].append(func_addr)

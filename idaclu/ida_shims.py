@@ -229,6 +229,9 @@ def is_off0(flag):
     fn = _get_fn_by_version(ida_bytes, 'is_off0', 'isOff0', idaapi)
     return fn(flag)
 
+def is_loaded(ea):
+    fn = _get_fn_by_version(ida_bytes, 'is_loaded', 'isLoaded', idc)
+    return fn(ea)
 
 def get_flags(ea):
     '''

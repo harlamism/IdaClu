@@ -28,9 +28,9 @@ def get_psdo_list(func_ea):
     func_pseudocode = []
     decomp_str = ""
     try:
-       decomp_str = idaapi.decompile(func_ea)
+        decomp_str = idaapi.decompile(func_ea)
     except idaapi.DecompilationFailure:
-       return []
+        return []
     for line in str(decomp_str).split('\n'):
         if '//' in line:
             code = line.split('//')[0]
@@ -40,18 +40,18 @@ def get_psdo_list(func_ea):
             if line != '':
                 func_pseudocode.append(line.lstrip())
     return func_pseudocode
-    
+
 def get_psdo_body(func_ea):
     psdo_list = get_psdo_list(func_ea)
     return psdo_list[2:-1]
-    
+
 def remove_casts(call_str):
     call_res = call_str
     for m in re.finditer('\(\*(\([a-zA-Z0-9_\s\*\,\.\(\)]+\)\))\(', call_res):
         call_res = call_res.replace(m.group(1), '')
     call_res = re.sub(r"\(_.*\*\)", "", call_res)
     return call_res
- 
+
 def get_data(func_gen=None, env_desc=None, plug_params=None):
 
     report = {

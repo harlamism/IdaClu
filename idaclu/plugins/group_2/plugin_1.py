@@ -50,8 +50,13 @@ def get_data(func_gen=None, env_desc=None, plug_params=None):
                     # within the current sample:
                     #   SEH-handlers, callback-arguments, string-offsets, etc.
 
+                    dasm_flag = idaapi.GENDSM_FORCE_CODE
+                    dasm_line = ida_shims.generate_disasm_line(head, dasm_flag)
+                    dasm_norm = ' '.join(dasm_line.split())
+                    func_comm = '{} / {}'.format(hex(head), dasm_norm)
+
                     opnd_key = "const: {} / {}".format(opnd_val, hex(opnd_val))
-                    report['data'][opnd_key].append(func_addr)
+                    report['data'][opnd_key].append((func_addr, func_comm))
                     report['stat'][opnd_key] += 1
 
     report['data'] = sort_nat(report['data'])

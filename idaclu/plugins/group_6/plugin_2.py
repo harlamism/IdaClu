@@ -44,6 +44,13 @@ def get_psdo_list(func_ea):
 def get_psdo_body(func_ea):
     psdo_list = get_psdo_list(func_ea)
     return psdo_list[2:-1]
+    
+def remove_casts(call_str):
+    call_res = call_str
+    for m in re.finditer('\(\*(\([a-zA-Z0-9_\s\*\,\.\(\)]+\)\))\(', call_res):
+        call_res = call_res.replace(m.group(1), '')
+    call_res = re.sub(r"\(_.*\*\)", "", call_res)
+    return call_res
  
 def get_data(func_gen=None, env_desc=None, plug_params=None):
 
@@ -56,13 +63,24 @@ def get_data(func_gen=None, env_desc=None, plug_params=None):
         caller_name = idaapi.get_func_name(func_addr)
         caller_psdo = get_psdo_body(func_addr)
 
-        for psdo_line in caller_psdo:
-            # (?:(?:.*\s)?)(\*\([a-zA-Z0-9 \+]\))\(.*\)(?:(?:.*)?)
-            is_func_matched = re.match('(?:(?:.*\s)?)(\(\*\([\*a-zA-Z0-9_\s\+]+\)\))\(.*\)(?:(?:.*)?)', psdo_line)
+        psdo_size = len(caller_psdo)
+
+        for i in range(psdo_size):
+            psdo_line = caller_psdo[i]
+            is_func_matched = re.match('(\(\*.*[A-Za-z0-9_]+\s\+\s[A-Za-z0-9_\s\*\)\+]+\)\))\(', psdo_line)
             if is_func_matched:
-                calee_name = is_func_matched.group(1)
-                report['data'][calee_name].append((func_addr, psdo_line))
-                report['stat'][calee_name] += 1
+                call_raw = is_func_matched.group(1)
+                call_fmt = remove_casts(call_raw)
+
+                func_comm = psdo_line
+                while ';' not in func_comm and i + 1 < psdo_size:
+                    i += 1
+                    if func_comm[-1] == ',':
+                        func_comm += ' '
+                    func_comm += caller_psdo[i]
+
+                report['data'][call_fmt].append((func_addr, func_comm))
+                report['stat'][call_fmt] += 1
 
     report['data'] = order_item_len(report['data'])
     report['stat'] = order_item_len(report['stat'])

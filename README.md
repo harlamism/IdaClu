@@ -297,7 +297,6 @@ They will be carefully considered and their implementation is highly likely to b
 
 ## Version History
 
-- ***2023-10-2x*** - Release of more stable *v1.0* *(UPCOMING)*
-- ***2023-10-1x*** - Various code clean-ups and optimizations *(UPCOMING)*
-- ***2023-09-2x*** - Bug-fixes *(UPCOMING)*
+- ***2023-12-1x*** - Obfuscation detection sub-plugins *(UPCOMING)*
+- ***2023-12-01*** - Release of more stable *v1.0*
 - ***2023-09-14*** - The original release of ***IdaClu*** *v0.9*!

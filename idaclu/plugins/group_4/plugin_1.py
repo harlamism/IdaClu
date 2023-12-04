@@ -1,5 +1,7 @@
 import bisect
 import collections
+import json
+import os
 
 import idautils
 import idaapi
@@ -84,7 +86,14 @@ def get_data(func_gen=None, env_desc=None, plug_params=None):
 
 
 def debug():
-    print(json.dumps(get_data(), indent=4))
+    env_desc = lambda: None
+    env_desc.ida_module = os.path.basename(ida_shims.get_input_file_path())
+
+    log_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'drcov.proc.log')
+    plug_params = { 'file_path': log_path }
+
+    data_obj = get_data(func_gen=idautils.Functions, env_desc=env_desc, plug_params=plug_params)
+    ida_shims.msg(json.dumps(data_obj, indent=4))
 
 if __name__ == '__main__':
     debug()

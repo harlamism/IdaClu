@@ -120,12 +120,13 @@ class IdaCluDialog(QWidget):
         self.ui.wLabelTool.setClsHandler(self.clsLabel)
 
     def getFuncPrefs(self, is_dummy=False):
-        pfx_afacts = ['%', 'sub_']
+        pfx_afacts = ['%', '_']
         prefs = set()
         for func_addr in idautils.Functions():
             func_name = ida_shims.get_func_name(func_addr)
+            func_name = func_name.lstrip('_')
             if any(pa in func_name for pa in pfx_afacts):
-                func_prefs = ida_utils.get_func_prefs(func_name, True, is_dummy)
+                func_prefs = ida_utils.get_func_prefs(func_name, is_dummy)
                 prefs.update(func_prefs)
         return list(prefs)
 
@@ -339,7 +340,7 @@ class IdaCluDialog(QWidget):
                 return False
         # function name prefixes
         func_name = ida_shims.get_func_name(func_addr)
-        func_prfx = ida_utils.get_func_prefs(func_name, True, True)
+        func_prfx = ida_utils.get_func_prefs(func_name, True)
         if len(self.sel_prfx) and self.sel_prfx[0] != '':
             if not any(p in self.sel_prfx for p in func_prfx):
                 return False
@@ -362,10 +363,10 @@ class IdaCluDialog(QWidget):
         label_name = None
         if label_mode == 'folder':
             label_name = self.ui.wLabelTool.getLabelName(prfx="/")
-            self.ui.wFolderFilter.addItemNew(label_name)
+            self.ui.wFolderFilter.addItemNew(label_name, is_sorted=True)
         elif label_mode == 'prefix':
             label_name = self.ui.wLabelTool.getLabelName(sufx="_")
-            self.ui.wPrefixFilter.addItemNew(label_name)
+            self.ui.wPrefixFilter.addItemNew(label_name, is_sorted=True)
         return label_name
 
     def isDataSelected(self):
@@ -411,7 +412,7 @@ class IdaCluDialog(QWidget):
                 func_addr = int(addr_field, base=16)
                 func_name = ida_shims.get_func_name(func_addr)
                 if self.ui.wLabelTool.getLabelMode() == 'prefix':
-                    func_prefs = ida_utils.get_func_prefs(func_name, True, True)
+                    func_prefs = ida_utils.get_func_prefs(func_name, True)
                     if len(func_prefs) >= 1 and func_prefs[0] != 'sub_':
                         # get last prefix
                         name_token = str(func_prefs[0]).replace('_', '%')

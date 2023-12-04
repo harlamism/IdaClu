@@ -326,8 +326,8 @@ class FilterInputGroup(QWidget):
         else:
             self._select.setEnabled(False)
 
-    def addItemNew(self, item):
-        self._select.addItemNew(item)
+    def addItemNew(self, item, is_sorted=False):
+        self._select.addItemNew(item, userData=None, is_sorted=True)
 
     def setEnabled(self, state=False):
         self._select.setEnabled()
@@ -366,18 +366,19 @@ class CheckableComboBox(QComboBox):
                 data = itemList[indx]
             except (TypeError, IndexError):
                 data = None
-            self.addItem(text, data)
+            self.addItem(text, data, is_sorted=False)
+        self.sortItems()
 
-    def addItemNew(self, text, userData=None):
+    def addItemNew(self, text, userData=None, is_sorted=False):
         for row in range(self.model().rowCount()):
             item = self.model().item(row)
             if ((item and (item.text() == text)) or
                 (userData and item.data() == userData)):
                 return False
-        self.addItem(text, userData)
+        self.addItem(text, userData, is_sorted)
         return True
 
-    def addItem(self, text, userData=None):
+    def addItem(self, text, userData=None, is_sorted=False):
         item = QStandardItem()
         item.setText(text)
         if not userData is None:
@@ -385,6 +386,11 @@ class CheckableComboBox(QComboBox):
         item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable)
         item.setData(Qt.Unchecked, Qt.CheckStateRole)
         self.model().appendRow(item)
+        if is_sorted:
+            self.sortItems()
+
+    def sortItems(self):
+        self.model().sort(0)
 
     def eventFilter(self, widget, event):
         if widget == self.lineEdit():

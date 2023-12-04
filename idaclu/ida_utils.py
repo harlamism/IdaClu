@@ -1,3 +1,5 @@
+import re
+#
 import idc
 import idaapi
 import idautils
@@ -18,19 +20,46 @@ except ImportError:
 
 from idaclu import ida_shims
 
+# logic / prefixes '%' and '_' are the opposites:
+# 1. '%' - has always single occurence, '_' - not;
+# 2. '%' cannot appear at the very beginning of a function name, '_' - can;
+# 3. '%' is purely internal prefix representation, '_' - human representation;
+# 4. '%' are the prefixes added automatically, '_' - manually
 
-def get_func_prefs(func_name, is_uscore=False, is_dummy=False):
+def get_func_prefs(func_name, is_dummy=True):
+    pfx_dummy = 'sub_'
+    fnr_dummy = '{}[A-F0-9]+'.format(pfx_dummy)
     prefs = []
-    seen = set()
-    dummy_pref = 'sub_'  # special prefix w/o '%'
-    func_prfx = func_name.split('%')
-    for p in func_prfx[:-1]:
-        pref = '{}_'.format(p)
-        if pref not in seen:
-            prefs.append(pref)
-            seen.add(pref)
-    if is_dummy and dummy_pref in func_prfx[-1] and dummy_pref not in seen:
-        prefs.append(dummy_pref)
+    pfx = ''
+
+    idx = 0
+    while (idx < len(func_name) and
+           not re.match(fnr_dummy, func_name[idx:len(func_name)])):
+        char = func_name[idx]
+        if char == '%':
+            prefs.append('{}_'.format(pfx))
+            pfx = ''
+
+        elif char == "_":
+            pfx_len = 1
+            while func_name[idx+pfx_len] == '_':
+                pfx_len += 1
+
+            if idx != 0:
+                pfx += func_name[idx:idx+pfx_len]
+                if (not any(a in pfx for a in ['@', '$', '?', '-', '+']) and 
+                    not re.match('^[0-9]+_', pfx)):
+                    prefs.append(pfx)
+                pfx = ''
+                
+            idx += pfx_len-1
+        else:
+            pfx += char
+
+        idx += 1
+
+    if is_dummy and idx != len(func_name)-1:
+        prefs.append(pfx_dummy)
     return prefs
 
 def refresh_ui():

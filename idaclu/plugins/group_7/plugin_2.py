@@ -6,23 +6,14 @@ import idaapi
 import idautils
 #
 from idaclu import ida_shims
+from idaclu import ida_utils
 
 
-SCRIPT_NAME = 'Distinct Prefixes'
+SCRIPT_NAME = 'Distinct Prefixes (IdaClu)'
 SCRIPT_TYPE = 'func'
 SCRIPT_VIEW = 'tree'
 SCRIPT_ARGS = []
 
-
-def get_func_prefs(func_name, is_uscore=False, is_dummy=False):
-    prefs = set()
-    dummy_pref = 'sub_'  # special prefix w/o '%'
-    if is_dummy and dummy_pref in func_name:
-        prefs.add(dummy_pref)
-    func_prfx = func_name.split('%')[:-1]
-    for p in func_prfx:
-        prefs.add('{}_'.format(p))
-    return list(prefs)
 
 def get_data(func_gen=None, env_desc=None, plug_params=None):
     report = {
@@ -36,7 +27,7 @@ def get_data(func_gen=None, env_desc=None, plug_params=None):
         prefs = set()
 
         if sep_char in func_name:
-            func_prefs = get_func_prefs(func_name, True, False)
+            func_prefs = ida_utils.get_func_prefs(func_name, False)
             prefs.update(func_prefs)
         for pfx in list(prefs):
             report['data'][pfx].append(func_addr)

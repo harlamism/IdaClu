@@ -396,7 +396,7 @@ class IdaCluDialog(QWidget):
                 indx_group = self.ui.rvTable.model().index(id_group, 0, QtCore.QModelIndex())
                 indx_child = self.ui.rvTable.model().index(id_child, id_col, indx_group)
                 if label_mode == 'prefix':
-                    if not "{}%".format(label_norm[:-1]) in func_name:
+                    if not re.match("{0}%|{0}_".format(label_norm[:-1]), func_name):
                         func_name_new = plg_utils.add_prefix(func_name, label_norm, False)
                         ida_shims.set_name(func_addr, func_name_new, idaapi.SN_CHECK)
                         self.ui.rvTable.model().setData(indx_child, func_name_new)

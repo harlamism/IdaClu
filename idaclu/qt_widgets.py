@@ -274,11 +274,20 @@ class PaletteTool(QWidget):
 
 
 class FilterInputGroup(QWidget):
-    def __init__(self, name, pholder, parent=None):
+    def __init__(self, names, pholder, parent=None):
         super(FilterInputGroup, self).__init__(parent)
 
         self._items = []
 
+        if isinstance(names, str):
+            self._has_state = False
+            names = [names]
+        elif isinstance(names, list) and len(names) == 2:
+            self._has_state = True
+            self._names = names
+            self._state = False
+
+        name = names[0]
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
@@ -303,6 +312,9 @@ class FilterInputGroup(QWidget):
         label.setMaximumSize(QSize(96, 26))
         label.setProperty('class', 'select-head')
         self._label = label
+        if self._has_state:
+            self._label.setCursor(QCursor(Qt.PointingHandCursor))
+            self._label.clicked.connect(self.toggleMode)
         return label
 
     def initSelect(self, name, parent=None):
@@ -342,6 +354,14 @@ class FilterInputGroup(QWidget):
 
     def getData(self):
         return self._select.getData().split('; ')
+
+    def toggleMode(self):
+        self._state = not self._state
+        caption = self._names[int(self._state)].upper()
+        self._label.setText(i18n(caption))
+
+    def getState(self):
+        return self._state
 
 
 class CheckableComboBox(QComboBox):

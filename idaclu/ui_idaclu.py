@@ -166,7 +166,7 @@ class Ui_PluginDialog(object):
 
         self.PrefixFilterLayout.addItem(self.sPrefixFilterBeg)
 
-        self.wPrefixFilter = FilterInputGroup(u"Prefixes", u"Pick prefixes...", self.FiltersGroup)
+        self.wPrefixFilter = FilterInputGroup([u"Prefixes (i)", u"Prefixes (e)"], u"Pick prefixes...", self.FiltersGroup)
         self.wPrefixFilter.setObjectName(u"wPrefixFilter")
         self.wPrefixFilter.setMinimumSize(QSize(0, 26))
         self.wPrefixFilter.setMaximumSize(QSize(16777215, 26))

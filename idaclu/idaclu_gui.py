@@ -345,8 +345,12 @@ class IdaCluDialog(QWidget):
         func_name = ida_shims.get_func_name(func_addr)
         func_prfx = ida_utils.get_func_prefs(func_name, True)
         if len(self.sel_prfx) and self.sel_prfx[0] != '':
-            if not any(p in self.sel_prfx for p in func_prfx):
-                return False
+            if self.ui.wPrefixFilter.getState() == True:
+                if len(func_prfx) != len(self.sel_prfx) or not all(p in self.sel_prfx for p in func_prfx):
+                    return False
+            else:
+                if not any(p in self.sel_prfx for p in func_prfx):
+                    return False
         # function highlight color
         func_colr = plg_utils.RgbColor(ida_shims.get_color(func_addr, idc.CIC_FUNC))
         if len(self.sel_colr):

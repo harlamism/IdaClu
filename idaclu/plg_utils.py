@@ -82,8 +82,13 @@ def invert_dict(original_dict):
     return inverted_dict
 
 def add_prefix(func_name, func_pref, is_shadow=False):
-    dlim_char = '_' if is_shadow else '%'
-    pref_norm = func_pref.replace('_', '')
+    dlim_vars = ['%', '_']
+    dlim_char = dlim_vars[int(is_shadow)]
+    pref_norm = func_pref.strip('_')
+    if is_shadow == False:
+        dlim_anti = dlim_vars[int(not is_shadow)] 
+        if dlim_anti in pref_norm:
+            pref_norm = pref_norm.replace(dlim_anti, dlim_char)
     func_name_new = '{}{}{}'.format(pref_norm, dlim_char, func_name)
     return func_name_new
 

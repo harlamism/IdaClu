@@ -254,6 +254,9 @@ class IdaCluDialog(QWidget):
                     func_comm = tt[1]
 
                 if is_filter_embed == False:
+                    self.sel_dirs = self.ui.wFolderFilter.getData()
+                    self.sel_prfx = self.ui.wPrefixFilter.getData()
+                    self.sel_colr = self.ui.wColorFilter.getSelectedColors()
                     if not self.isFuncRelevant(func_addr):
                         continue
 

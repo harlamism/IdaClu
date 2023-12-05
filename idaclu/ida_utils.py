@@ -28,13 +28,11 @@ from idaclu import ida_shims
 
 def get_func_prefs(func_name, is_dummy=True):
     pfx_dummy = 'sub_'
-    fnr_dummy = '{}[A-F0-9]+'.format(pfx_dummy)
     prefs = []
     pfx = ''
 
     idx = 0
-    while (idx < len(func_name) and
-           not re.match(fnr_dummy, func_name[idx:len(func_name)])):
+    while idx < len(func_name):
         char = func_name[idx]
         if char == '%':
             prefs.append('{}_'.format(pfx))
@@ -58,8 +56,8 @@ def get_func_prefs(func_name, is_dummy=True):
 
         idx += 1
 
-    if is_dummy and idx != len(func_name)-1:
-        prefs.append(pfx_dummy)
+    if not is_dummy and pfx_dummy in prefs:
+        prefs.remove(pfx_dummy)
     return prefs
 
 def refresh_ui():

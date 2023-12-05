@@ -82,7 +82,7 @@ class IdaCluDialog(QWidget):
         self.sel_dirs = []
         self.sel_prfx = []
         self.sel_colr = []
-        self.rec_indx = {}
+        self.rec_indx = collections.defaultdict(list)
 
         self.heads = ['Name', 'Address', 'Size', 'Chunks', 'Nodes', 'Edges', 'Comment', 'Color']
         if env_desc.feat_folders:
@@ -296,7 +296,7 @@ class IdaCluDialog(QWidget):
                 self.items[-1].addChild(ResultNode(list(tt.values())))
                 global_index += 1
                 finished = 80 + int(15 * (global_index / float(overall_count)))
-                self.rec_indx[int(tt['func_addr'], 16)] = (i, j)
+                self.rec_indx[int(tt['func_addr'], 16)].append((i, j))
                 self.ui.wProgressBar.updateProgress(finished)
 
 
@@ -391,19 +391,20 @@ class IdaCluDialog(QWidget):
             addr_queue = self.getLabelAddrSet()
             for func_addr in addr_queue:
                 func_name = ida_shims.get_func_name(func_addr)
-                id_group, id_child = self.rec_indx[func_addr]
-                id_col = self.heads.index('Address')
-                indx_group = self.ui.rvTable.model().index(id_group, 0, QtCore.QModelIndex())
-                indx_child = self.ui.rvTable.model().index(id_child, id_col, indx_group)
-                if label_mode == 'prefix':
-                    if not re.match("{0}%|{0}_".format(label_norm[:-1]), func_name):
-                        func_name_new = plg_utils.add_prefix(func_name, label_norm, False)
-                        ida_shims.set_name(func_addr, func_name_new, idaapi.SN_CHECK)
-                        self.ui.rvTable.model().setData(indx_child, func_name_new)
-                else:  # == 'folder'
-                    folder_src = self.folders_funcs.get(func_addr, '/')
-                    ida_utils.set_func_folder(func_addr, folder_src, label_norm)
-                    self.ui.rvTable.model().setData(indx_child, label_norm)
+
+                for id_group, id_child in self.rec_indx[func_addr]:
+                    id_col = self.heads.index('Address')
+                    indx_group = self.ui.rvTable.model().index(id_group, 0, QtCore.QModelIndex())
+                    indx_child = self.ui.rvTable.model().index(id_child, id_col, indx_group)
+                    if label_mode == 'prefix':
+                        if not re.match("{0}%|{0}_".format(label_norm[:-1]), func_name):
+                            func_name_new = plg_utils.add_prefix(func_name, label_norm, False)
+                            ida_shims.set_name(func_addr, func_name_new, idaapi.SN_CHECK)
+                            self.ui.rvTable.model().setData(indx_child, func_name_new)
+                    else:  # == 'folder'
+                        folder_src = self.folders_funcs.get(func_addr, '/')
+                        ida_utils.set_func_folder(func_addr, folder_src, label_norm)
+                        self.ui.rvTable.model().setData(indx_child, label_norm)
 
             if self.env_desc.feat_folders:
                 self.folders = ida_utils.get_func_dirs('/')
@@ -415,23 +416,29 @@ class IdaCluDialog(QWidget):
         if self.ui.rvTable.selectionModel().hasSelection():
             indexes = [index for index in self.ui.rvTable.selectionModel().selectedRows()]
             data = [index.sibling(index.row(), self.getFuncAddrCol()).data() for index in indexes]
-            for idx, addr_field in enumerate(data):
+            for idx, addr_field in enumerate(set(data)):
                 func_addr = int(addr_field, base=16)
                 func_name = ida_shims.get_func_name(func_addr)
-                if self.ui.wLabelTool.getLabelMode() == 'prefix':
-                    func_prefs = ida_utils.get_func_prefs(func_name, True)
-                    if len(func_prefs) >= 1 and func_prefs[0] != 'sub_':
-                        # get last prefix
-                        name_token = str(func_prefs[0]).replace('_', '%')
-                        func_name_new = func_name.replace(name_token, '')
-                        ida_shims.set_name(func_addr, func_name_new, idaapi.SN_NOWARN)
-                        self.ui.rvTable.model().setData(indexes[idx], func_name_new)
-                elif self.ui.wLabelTool.getLabelMode() == 'folder':
-                    func_fldr = self.folders_funcs.get(func_addr, '/')
-                    ida_utils.set_func_folder(func_addr, func_fldr, '/')
-                    self.ui.rvTable.model().setData(indexes[idx], '/')
-                else:
-                    ida_shims.msg('ERROR: unknown label mode')
+                for id_group, id_child in self.rec_indx[func_addr]:
+                    id_col = self.heads.index('Address')
+                    indx_group = self.ui.rvTable.model().index(id_group, 0, QtCore.QModelIndex())
+                    indx_child = self.ui.rvTable.model().index(id_child, id_col, indx_group)
+                    label_mode = self.ui.wLabelTool.getLabelMode()
+                    if label_mode == 'prefix':
+                        func_prefs = ida_utils.get_func_prefs(func_name, True)
+                        if len(func_prefs) >= 1 and func_prefs[0] != 'sub_':
+                            # get last prefix
+                            name_token = str(func_prefs[0]).replace('_', '%')
+                            func_name_new = func_name.replace(name_token, '')
+                            ida_shims.set_name(func_addr, func_name_new, idaapi.SN_NOWARN)
+                            self.ui.rvTable.model().setData(indx_child, func_name_new)
+                    elif label_mode == 'folder':
+                        func_fldr = self.folders_funcs.get(func_addr, '/')
+                        ida_utils.set_func_folder(func_addr, func_fldr, '/')
+                        self.ui.rvTable.model().setData(indx_child, '/')
+                    else:
+                        ida_shims.msg('ERROR: unknown label mode')
+            ida_utils.refresh_ui()
 
     def showContextMenu(self, point):
         ix = self.ui.rvTable.indexAt(point)
@@ -470,12 +477,12 @@ class IdaCluDialog(QWidget):
             addr_queue = self.getLabelAddrSet()
 
             for func_addr in addr_queue:
-                id_group, id_child = self.rec_indx[func_addr]
-                id_col = self.heads.index('Address')
-                indx_group = self.ui.rvTable.model().index(id_group, 0, QtCore.QModelIndex())
-                indx_child = self.ui.rvTable.model().index(id_child, id_col, indx_group)
-                ida_shims.set_color(func_addr, idc.CIC_FUNC, color.get_to_int())
-                self.ui.rvTable.model().setData(indx_child, color.get_to_str())
+                for id_group, id_child in self.rec_indx[func_addr]:
+                    id_col = self.heads.index('Address')
+                    indx_group = self.ui.rvTable.model().index(id_group, 0, QtCore.QModelIndex())
+                    indx_child = self.ui.rvTable.model().index(id_child, id_col, indx_group)
+                    ida_shims.set_color(func_addr, idc.CIC_FUNC, color.get_to_int())
+                    self.ui.rvTable.model().setData(indx_child, color.get_to_str())
 
             ida_utils.refresh_ui()
 

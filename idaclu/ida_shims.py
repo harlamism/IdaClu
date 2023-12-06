@@ -879,7 +879,7 @@ def get_color(ea, what):
     """
     """
     fn = _get_fn_by_version(idc, 'get_color', 'GetColor')
-    return fn(ea, what)
+    return fn(ea, what) & 0xFFFFFF
 
 
 def msg(message):

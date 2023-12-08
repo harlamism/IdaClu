@@ -274,12 +274,14 @@ class PaletteTool(QWidget):
 
 
 class FilterInputGroup(QWidget):
-    def __init__(self, names, pholder, parent=None):
+    def __init__(self, names, pholder, env_desc, parent=None):
         super(FilterInputGroup, self).__init__(parent)
 
         self._items = []
 
-        if isinstance(names, str):
+        self.env_desc = env_desc
+        is_unicode = isinstance(names, basestring) if env_desc.ver_py == 2 else isinstance(names, str)
+        if is_unicode:
             self._has_state = False
             names = [names]
         elif isinstance(names, list) and len(names) == 2:

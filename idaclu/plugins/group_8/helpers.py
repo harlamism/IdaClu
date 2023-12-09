@@ -9,6 +9,48 @@ from idaclu import ida_shims
 #
 from ngrams import determine_ngram_database
 
+ARITHMETIC_OPERATION = set([
+    idaapi.cot_add,   # x + y
+    idaapi.cot_lnot,  # !x
+    idaapi.cot_sub,   # x - y
+    idaapi.cot_mul,   # x * y
+    idaapi.cot_fmul,  # x * y fp
+    idaapi.cot_sdiv,  # x / y signed
+    idaapi.cot_udiv,  # x / y unsigned
+    idaapi.cot_fdiv,  # x / y fp
+    idaapi.cot_smod,  # x % y signed
+    idaapi.cot_umod   # x % y unsigned
+])
+
+ARITHMETIC_OPERATION_ASG = set([
+    idaapi.cot_asgadd,   # x += y
+    idaapi.cot_asgsub,   # x -= y
+    idaapi.cot_asgmul,   # x *= y
+    idaapi.cot_asgsdiv,  # x /= y signed
+    idaapi.cot_asgudiv,  # x /= y unsigned
+    idaapi.cot_asgsmod,  # x %= y signed
+    idaapi.cot_asgumod   # x %= y unsigned
+])
+
+BOOLEAN_OPERATION = set([
+    idaapi.cot_bnot,  # ~x
+    idaapi.cot_band,  # x & y
+    idaapi.cot_bor,   # x | y
+    idaapi.cot_xor,   # x ^ y
+    idaapi.cot_sshr,  # x >> y signed
+    idaapi.cot_ushr,  # x >> y unsigned
+    idaapi.cot_shl,   # x << y
+])
+
+BOOLEAN_OPERATION_ASG = set([
+    idaapi.cot_asgbor,   # x |= y
+    idaapi.cot_asgxor,   # x ^= y
+    idaapi.cot_asgband,  # x &= y
+    idaapi.cot_asgsshr,  # x >>= y signed
+    idaapi.cot_asgushr,  # x >>= y unsigned
+    idaapi.cot_asgshl,   # x <<= y
+])
+
 
 def calc_flattening_score(function):
     score = 0.0
@@ -206,3 +248,37 @@ def get_orph_eas(func_addr):
 def get_orph_count(func_addr):
     orph_num = len(list(get_orph_eas(func_addr)))
     return orph_num
+
+# ex- uses_mixed_boolean_arithmetic()
+class MbaVisitor(idaapi.ctree_visitor_t):
+    def __init__(self):
+        idaapi.ctree_visitor_t.__init__(self, idaapi.CV_PARENTS)
+        self.mba_eas = set([])
+    def list_parents(self, op_found):
+        for parent in self.parents:
+            if (parent is not None):
+                if op_found == 'b':
+                    if (parent.op in ARITHMETIC_OPERATION or
+                        parent.op in ARITHMETIC_OPERATION_ASG):
+                        self.mba_eas.add(parent.ea)
+                if op_found == 'a':
+                    if (parent.op in BOOLEAN_OPERATION or
+                        parent.op in BOOLEAN_OPERATION_ASG):
+                        self.mba_eas.add(parent.ea)
+    def visit_expr(self, e):
+        if e.op in BOOLEAN_OPERATION:
+            self.list_parents('b')
+        elif e.op in ARITHMETIC_OPERATION:
+            self.list_parents('a')
+        return 0
+
+def calculate_complex_arithmetic_expressions(function):  
+    instr_mba = 0
+    cfunc = idaapi.decompile(function)
+    if cfunc:
+        mba_visitor = MbaVisitor()
+        mba_visitor.apply_to(cfunc.body, None)
+        # if an expression has a boolean and an arithmetic operation, the expression has some arithmetic complexity
+        if len(mba_visitor.mba_eas):
+            instr_mba = len(mba_visitor.mba_eas)
+    return instr_mba

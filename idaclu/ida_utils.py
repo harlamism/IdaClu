@@ -55,8 +55,15 @@ def change_dir(dir_name, is_abs=True):
 # 3. '%' is purely internal prefix representation, '_' - human representation;
 # 4. '%' are the prefixes added automatically, '_' - manually
 
+def is_pfx_valid(pfx):
+    a_facts = ['@', '$', '?', '-', '+']
+    is_complex = any(a in pfx for a in a_facts)
+    is_numeric = re.match('^[0-9]+', pfx)
+    is_blanked = pfx == ''
+    return not (is_complex or is_numeric or is_blanked)
+
 def get_func_prefs(func_name, is_dummy=True):
-    if ((func_name.startswith('?') and '@' in func_name) or 
+    if ((func_name.startswith('?') and '@' in func_name) or
         func_name.startswith('_')):
         return []
     pfx_dummy = 'sub_'
@@ -64,22 +71,18 @@ def get_func_prefs(func_name, is_dummy=True):
     pfx = ''
 
     idx = 0
+    func_name = func_name.rstrip('_%:')
     while idx < len(func_name):
         char = func_name[idx]
-        if char == '%':
-            prefs.append(pfx)
-            pfx = ''
-
-        elif char == "_":
-            pfx_len = 1
-            while func_name[idx+pfx_len] == '_':
+        if char in ['%', ':', '_']:
+            pfx_len = 1 
+            while (idx+pfx_len) < len(func_name) and func_name[idx+pfx_len] in ['_', ':']:
                 pfx_len += 1
 
             if idx != 0:
                 # uncomment, if underscore tail in pfx is needed
                 # pfx += func_name[idx:idx+pfx_len]
-                if (not any(a in pfx for a in ['@', '$', '?', '-', '+']) and 
-                    not re.match('^[0-9]+', pfx) and pfx != ''):
+                if is_pfx_valid(pfx):
                     prefs.append(pfx)
                 pfx = ''
                 

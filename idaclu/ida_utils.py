@@ -497,3 +497,52 @@ def get_data_refs_to(addr):
 
 def get_refs_to(addr):
     return iter(get_code_refs_to(addr).union(get_data_refs_to(addr)))
+
+def is_arch64():
+    return bool(idaapi.getseg(ida_shims.get_first_seg()).bitness == 2)
+
+def get_ptr_type():
+    return [FF_DWORD, FF_QWORD][is_arch64()]
+
+def get_ref_off():
+    return [REF_OFF32, REF_OFF64][is_arch64()]
+
+def get_ptr_size():
+    return [4, 8][is_arch64()]
+
+def get_ptr(addr):
+    return [idaapi.get_32bit, idaapi.get_64bit][is_arch64()](addr)
+
+def is_GCC_auto():
+    inf = idaapi.get_inf_structure()
+    if idaapi.get_compiler_name(inf.cc.id) == 'GNU C++':
+        return True
+    return False
+
+def is_GCC_manual():
+    gcc_rtti_artifacts = [
+        "St9type_info",
+        "N10__cxxabiv117__class_type_infoE",
+        "N10__cxxabiv120__si_class_type_infoE",
+        "N10__cxxabiv121__vmi_class_type_infoE"
+    ]
+
+    flag = idaapi.SEARCH_CASE|idaapi.SEARCH_DOWN
+    for art in gcc_rtti_artifacts:
+        gcc_info = ida_shims.find_text(0x0, 0, 0, art, flag)
+        if gcc_info != idaapi.BADADDR:
+            return True
+    return False
+
+def is_vtable(addr):
+    if addr and has_xref(addr):
+        func_ea = get_ptr(addr)
+        if func_ea and idaapi.getseg(func_ea):
+            if ida_shims.get_segm_attr(func_ea, idc.SEGATTR_TYPE) == idc.SEG_CODE:
+                func_desc = idaapi.get_func(func_ea)
+                if func_desc and func_ea == ida_shims.start_ea(func_desc):
+                    return True
+    return False
+
+def has_xref(addr):
+    return ida_shims.has_xref(ida_shims.get_full_flags(addr))

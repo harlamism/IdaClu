@@ -22,6 +22,15 @@ except ImportError:
     except ImportError:
         pass
 
+
+# make sub-plugins discoverable
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+for i, path in enumerate(sys.path):
+    if "IDA" in path and os.path.basename(path) == 'plugins':
+        sys.path.insert(i, SCRIPT_DIR)
+        break
+
+
 is_ida = True
 try:  # almost version-agnostic imports
     import idc
@@ -46,10 +55,6 @@ from idaclu.qt_shims import (
 from idaclu import idaclu_gui
 from idaclu.assets import resource
 
-
-# make sub-plugins discoverable
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.dirname(SCRIPT_DIR))
 
 
 class ScriptEnv():
@@ -123,17 +128,19 @@ class ScriptEnv():
         return mode
 
     def get_plugin_ort(self):
-        plg_loc = None
+        plg_dst = None
         plg_scope = 'None'
         g_plg_path = os.path.join(self.dir_plugin[0], 'idaclu')
         l_plg_path = os.path.join(self.dir_plugin[1], 'idaclu')
         if os.path.isdir(g_plg_path):
-            plg_loc = self.dir_plugin[0]
+            plg_dst = self.dir_plugin[0]
             plg_scope = 'global'
         elif os.path.isdir(l_plg_path):
-            plg_loc = self.dir_plugin[1]
+            plg_dst = self.dir_plugin[1]
             plg_scope = 'local'
-        return (plg_loc, plg_scope)
+        plg_src = os.path.dirname(os.path.realpath(__file__))
+        plg_type = 'copy' if plg_dst == plg_src else 'link'
+        return (plg_dst, plg_src, plg_scope, plg_type)
 
     def detectEnv(self):
         if self.is_ida:
@@ -166,9 +173,11 @@ class ScriptEnv():
             # self.is_ida
             self.lib_qt = self.lib_qt = "pyside" if self.ver_sdk < 690 else "pyqt5"
             self.platform = sys.platform
-            plg_loc, plg_scope = self.get_plugin_ort()
-            self.plg_loc = plg_loc
+            plg_dst, plg_src, plg_scope, plg_type = self.get_plugin_ort()
+            self.plg_dst = plg_dst
+            self.plg_src = plg_src
             self.plg_scope = plg_scope
+            self.plg_type = plg_type
             self.run_mode = self.get_script_mode()
             self.ver_hexrays = idaapi.get_hexrays_version() if idaapi.init_hexrays_plugin() else None
             # self.ver_py

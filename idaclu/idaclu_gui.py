@@ -88,7 +88,7 @@ class IdaCluDialog(QWidget):
         if env_desc.feat_folders:
             self.heads.insert(1, 'Folder')
 
-        sp_path = self.get_splg_root(self.env_desc.plg_loc, 'idaclu')
+        sp_path = self.get_splg_root(self.env_desc.plg_src, 'idaclu')
         for frame in self.get_sp_controls(sp_path):
             self.ui.ScriptsContentsLayout.addWidget(frame)
 
@@ -172,7 +172,7 @@ class IdaCluDialog(QWidget):
         full_spec_name = sender_button.objectName()
         elem, cat, plg = full_spec_name.split('#')
 
-        root_folder = self.env_desc.plg_loc
+        root_folder = self.env_desc.plg_src
         module = None
         with plg_utils.PluginPath(os.path.join(root_folder, 'idaclu', 'plugins', cat)):
             module = __import__(plg)

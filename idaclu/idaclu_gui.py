@@ -532,21 +532,32 @@ class IdaCluDialog(QWidget):
         addr_queue.update(addr_calees)
         return addr_queue
 
-    def swapPosition(self):
+    def swapPosition(self, reset=False):
         layout = self.ui.DialogSplitter
+
+        layout_sizes = None
+        if reset:
+            layout_width = layout.width()
+            l_size = int(layout_width * 0.3)
+            r_size = int(layout_width * 0.7)
+            layout_sizes = [l_size, r_size] if self.is_sidebar_on_left else [r_size, l_size]
+        else:
+            layout_sizes = layout.sizes()
+            layout_sizes = layout_sizes[::-1]
 
         self.ui.SidebarFrame.setParent(None)
         self.ui.MainFrame.setParent(None)
 
-        if not self.is_sidebar_on_left:
-            layout.insertWidget(0, self.ui.SidebarFrame)
-            layout.insertWidget(1, self.ui.MainFrame)
-        else:
+        if self.is_sidebar_on_left:
             layout.insertWidget(0, self.ui.MainFrame)
             layout.insertWidget(1, self.ui.SidebarFrame)
+        else:
+            layout.insertWidget(0, self.ui.SidebarFrame)
+            layout.insertWidget(1, self.ui.MainFrame)
 
-        layout.setCollapsible(0,False)
-        layout.setCollapsible(1,False)
+        # layout.setCollapsible(0,False)
+        # layout.setCollapsible(1,False)
+        layout.setSizes(layout_sizes)
 
         self.is_sidebar_on_left = not self.is_sidebar_on_left
 

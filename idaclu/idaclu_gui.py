@@ -42,6 +42,29 @@ except ImportError:
     pass
 
 
+class InstrumentedCallback:
+    """A wrapper class to count accesses to a callback."""
+
+    def __init__(self, func, pass_count=0):
+        self.func = func
+        self.pass_count = pass_count
+        self.call_count = 0
+
+    def reset(self):
+        self.call_count = 0
+
+    def __call__(self, *args):
+        self.call_count += 1
+
+        if self.pass_count == 0:
+            return self.func()
+        else:
+            return self.func(self.call_count, self.pass_count)
+
+    def get_call_count(self):
+        return self.call_count
+
+
 class AppendTextEditDelegate(QStyledItemDelegate):
     def createEditor(self, parent, option, index):
         editor = QLineEdit(parent)
@@ -156,158 +179,175 @@ class IdaCluDialog(QWidget):
                     widget.deleteLater()
                 del item
 
+    def sample_generator(self):
+        if False:
+            yield
+
     def get_plugin_data(self):
         def sort_with_progress(constant, mcounter):
             def custom_sort(item):
                 index, element = item
                 mcounter[0] += 1
                 finished = 65 + int(15 * (mcounter[0] / float(constant)))
-                self.ui.wProgressBar.updateProgress(finished)
+                self.ui.wProgressBar.updateProgress(finished, "Phase: sorting")
                 return element['func_size']
             return custom_sort
 
-        sender_button = self.sender()
-        self.rec_indx.clear()
+        self.ui.rvTable.setModel(ResultModel([], [], self.env_desc))
 
-        full_spec_name = sender_button.objectName()
-        elem, cat, plg = full_spec_name.split('#')
+        try:
+            sender_button = self.sender()
+            self.rec_indx.clear()
 
-        root_folder = self.env_desc.plg_src
-        module = None
-        with plg_utils.PluginPath(os.path.join(root_folder, 'idaclu', 'plugins', cat)):
-            module = __import__(plg)
-            del sys.modules[plg]
+            full_spec_name = sender_button.objectName()
+            elem, cat, plg = full_spec_name.split('#')
 
-        script_name = getattr(module, 'SCRIPT_NAME')
-        script_type = getattr(module, 'SCRIPT_TYPE', 'custom')
-        script_view = getattr(module, 'SCRIPT_VIEW', 'table')
-        script_args = getattr(module, 'SCRIPT_ARGS', [])
+            root_folder = self.env_desc.plg_src
+            module = None
+            with plg_utils.PluginPath(os.path.join(root_folder, 'idaclu', 'plugins', cat)):
+                module = __import__(plg)
+                del sys.modules[plg]
 
-        plug_params = {}
-        if self.option_sender != None:
-            widget = self.ui.ScriptsArea.findChild(QPushButton, self.option_sender)
-            parent_layout = widget.parent().layout()
+            script_name = getattr(module, 'SCRIPT_NAME')
+            script_type = getattr(module, 'SCRIPT_TYPE', 'custom')
+            script_view = getattr(module, 'SCRIPT_VIEW', 'table')
+            script_args = getattr(module, 'SCRIPT_ARGS', [])
 
-            if self.option_sender == full_spec_name:
+            plug_params = {}
+            if self.option_sender != None:
+                widget = self.ui.ScriptsArea.findChild(QPushButton, self.option_sender)
+                parent_layout = widget.parent().layout()
+
+                if self.option_sender == full_spec_name:
+                    for i in range(parent_layout.count()):
+                        sub_item = parent_layout.itemAt(i)
+                        if sub_item:
+                            sub_widget = sub_item.widget()
+                            if sub_widget and (isinstance(sub_widget, QLineEdit)):
+                                param_name = sub_widget.objectName().replace("{}__".format(full_spec_name), "")
+                                plug_params[param_name] = sub_widget.text()  # .toPlainText()
+
                 for i in range(parent_layout.count()):
                     sub_item = parent_layout.itemAt(i)
                     if sub_item:
+                        if isinstance(sub_item, QSpacerItem):
+                            parent_layout.removeItem(sub_item)
+                            continue
                         sub_widget = sub_item.widget()
                         if sub_widget and (isinstance(sub_widget, QLineEdit)):
-                            param_name = sub_widget.objectName().replace("{}__".format(full_spec_name), "")
-                            plug_params[param_name] = sub_widget.text()  # .toPlainText()
+                            parent_layout.removeWidget(sub_widget)
+                            sub_widget.setParent(None)
 
-            for i in range(parent_layout.count()):
-                sub_item = parent_layout.itemAt(i)
-                if sub_item:
-                    if isinstance(sub_item, QSpacerItem):
-                        parent_layout.removeItem(sub_item)
-                        continue
-                    sub_widget = sub_item.widget()
-                    if sub_widget and (isinstance(sub_widget, QLineEdit)):
-                        parent_layout.removeWidget(sub_widget)
-                        sub_widget.setParent(None)
+                self.option_sender = None
 
-            self.option_sender = None
+            elif self.option_sender == None and len(script_args) > 0:
+                parent_widget = sender_button.parent()
+                if parent_widget:
+                    for i, (ctrl_name, var_name, ctrl_ph) in enumerate(script_args):
+                        text_edit = QLineEdit()
+                        text_edit.setPlaceholderText(ctrl_ph)
+                        text_edit.setMaximumSize(QSize(16777215, 30))
+                        parent_widget.layout().addWidget(text_edit)
+                        text_edit.setObjectName("{}__{}".format(full_spec_name, var_name))
+                    spacer = QSpacerItem(20, 30, QSizePolicy.Fixed, QSizePolicy.MinimumExpanding)
+                    parent_widget.layout().addStretch(1)
+                    self.option_sender = full_spec_name
+                    return
 
-        elif self.option_sender == None and len(script_args) > 0:
-            parent_widget = sender_button.parent()
-            if parent_widget:
-                for i, (ctrl_name, var_name, ctrl_ph) in enumerate(script_args):
-                    text_edit = QLineEdit()
-                    text_edit.setPlaceholderText(ctrl_ph)
-                    text_edit.setMaximumSize(QSize(16777215, 30))
-                    parent_widget.layout().addWidget(text_edit)
-                    text_edit.setObjectName("{}__{}".format(full_spec_name, var_name))
-                spacer = QSpacerItem(20, 30, QSizePolicy.Fixed, QSizePolicy.MinimumExpanding)
-                parent_widget.layout().addStretch(1)
-                self.option_sender = full_spec_name
-                return
+            agroup = getattr(module, 'get_data')
 
-        agroup = getattr(module, 'get_data')
-
-        is_filter_embed = False
-        if script_type == 'func':
-            is_filter_embed = True
-            sdata = agroup(self.updatePbFunc, self.env_desc, plug_params)  # pre-filter
-        elif script_type == 'custom':
             is_filter_embed = False
-            sdata = agroup(self.updatePb, self.env_desc, plug_params)  # post-filter
-        else:
-            ida_shims.msg('ERROR: Unknown plugin type')
+            if script_type == 'func':
+                is_filter_embed = True
+                gen = InstrumentedCallback(self.sample_generator)
+                agroup(gen, self.env_desc, plug_params)
+                phase_count = gen.get_call_count()
+                gen = InstrumentedCallback(self.updatePbFunc, phase_count)
+                sdata = agroup(gen, self.env_desc, plug_params)  # pre-filter
+            elif script_type == 'custom':
+                is_filter_embed = False
+                gen = InstrumentedCallback(self.sample_generator)
+                agroup(gen, self.env_desc, plug_params)
+                phase_count = gen.get_call_count()
+                gen = InstrumentedCallback(self.updatePb, phase_count)
+                sdata = agroup(gen, self.env_desc, plug_params)  # post-filter
+            else:
+                ida_shims.msg('ERROR: Unknown plugin type')
+                return
+            sitems = None
+
+            self.items = []
+
+            sdatt = collections.defaultdict(list)
+            overall_count = sum(len(lst) for lst in sdata.values())
+            global_index = 0
+            for dt in sdata:
+                for tt in sdata[dt]:
+                    func_addr = None
+                    func_comm = None
+                    if isinstance(tt, int):
+                        func_addr = tt
+                        func_comm = ""
+                    elif self.env_desc.ver_py == 2 and isinstance(tt, long):
+                        func_addr = int(tt)
+                        func_comm = ""
+                    elif isinstance(tt, tuple):
+                        func_addr = int(tt[0])
+                        func_comm = tt[1]
+
+                    if is_filter_embed == False:
+                        self.sel_dirs = self.ui.wFolderFilter.getData()
+                        self.sel_prfx = self.ui.wPrefixFilter.getData()
+                        self.sel_colr = self.ui.wColorFilter.getSelectedColors()
+                        if not self.isFuncRelevant(func_addr):
+                            continue
+
+                    node_count, edge_count = ida_utils.get_nodes_edges(func_addr)
+                    func_desc = idaapi.get_func(func_addr)
+                    func_name = ida_shims.get_func_name(func_addr)
+                    func_colr = ida_shims.get_color(func_addr, idc.CIC_FUNC)
+                    func_path = None
+                    if self.env_desc.feat_folders:
+                        func_path = self.folders_funcs[func_addr] if func_addr in self.folders_funcs else '/'
+
+                    entry = collections.OrderedDict()
+                    entry['func_name'] = func_name
+                    if func_path:
+                        entry['func_path'] = func_path
+                    entry['func_addr'] = hex(int(func_addr))
+                    entry['func_size'] = ida_shims.calc_func_size(func_desc)
+                    entry['func_chnk'] = len(list(idautils.Chunks(func_addr)))
+                    entry['func_node'] = node_count
+                    entry['func_edge'] = edge_count
+                    entry['func_comm'] = func_comm
+                    entry['func_colr'] = plg_utils.RgbColor(func_colr).get_to_str()
+
+                    sdatt[dt].append(entry)
+                    global_index += 1
+                    finished = 50 + int(15 * (global_index / float(overall_count)))
+                    self.ui.wProgressBar.updateProgress(finished, "Phase: augmenting")
+
+            mut_counter = [0]
+            for key, value in sdatt.items():
+                sdatt[key] = sorted(enumerate(value), key=sort_with_progress(overall_count, mut_counter))
+
+            global_index = 0
+            for i, dt in enumerate(sdatt):
+                self.items.append(ResultNode("{} ({})".format(dt, len(sdatt[dt]))))
+                for j, (idx, tt) in enumerate(sdatt[dt]):
+                    self.items[-1].addChild(ResultNode(list(tt.values())))
+                    global_index += 1
+                    finished = 80 + int(15 * (global_index / float(overall_count)))
+                    self.rec_indx[int(tt['func_addr'], 16)].append((i, j))
+                    self.ui.wProgressBar.updateProgress(finished, "Phase: rendering")
+
+
+            self.some_options_shown = None
+            self.ui.rvTable.setModel(ResultModel(self.heads, self.items, self.env_desc))
+            self.ui.wProgressBar.updateProgress(100, "Phase: completing")
+            self.prepareView()
+        except plg_utils.UserCancelledError:
             return
-        sitems = None
-
-        self.items = []
-
-        sdatt = collections.defaultdict(list)
-        overall_count = sum(len(lst) for lst in sdata.values())
-        global_index = 0
-        for dt in sdata:
-            for tt in sdata[dt]:
-                func_addr = None
-                func_comm = None
-                if isinstance(tt, int):
-                    func_addr = tt
-                    func_comm = ""
-                elif self.env_desc.ver_py == 2 and isinstance(tt, long):
-                    func_addr = int(tt)
-                    func_comm = ""
-                elif isinstance(tt, tuple):
-                    func_addr = int(tt[0])
-                    func_comm = tt[1]
-
-                if is_filter_embed == False:
-                    self.sel_dirs = self.ui.wFolderFilter.getData()
-                    self.sel_prfx = self.ui.wPrefixFilter.getData()
-                    self.sel_colr = self.ui.wColorFilter.getSelectedColors()
-                    if not self.isFuncRelevant(func_addr):
-                        continue
-
-                node_count, edge_count = ida_utils.get_nodes_edges(func_addr)
-                func_desc = idaapi.get_func(func_addr)
-                func_name = ida_shims.get_func_name(func_addr)
-                func_colr = ida_shims.get_color(func_addr, idc.CIC_FUNC)
-                func_path = None
-                if self.env_desc.feat_folders:
-                    func_path = self.folders_funcs[func_addr] if func_addr in self.folders_funcs else '/'
-
-                entry = collections.OrderedDict()
-                entry['func_name'] = func_name
-                if func_path:
-                    entry['func_path'] = func_path
-                entry['func_addr'] = hex(int(func_addr))
-                entry['func_size'] = ida_shims.calc_func_size(func_desc)
-                entry['func_chnk'] = len(list(idautils.Chunks(func_addr)))
-                entry['func_node'] = node_count
-                entry['func_edge'] = edge_count
-                entry['func_comm'] = func_comm
-                entry['func_colr'] = plg_utils.RgbColor(func_colr).get_to_str()
-
-                sdatt[dt].append(entry)
-                global_index += 1
-                finished = 50 + int(15 * (global_index / float(overall_count)))
-                self.ui.wProgressBar.updateProgress(finished)
-
-        mut_counter = [0]
-        for key, value in sdatt.items():
-            sdatt[key] = sorted(enumerate(value), key=sort_with_progress(overall_count, mut_counter))
-
-        global_index = 0
-        for i, dt in enumerate(sdatt):
-            self.items.append(ResultNode("{} ({})".format(dt, len(sdatt[dt]))))
-            for j, (idx, tt) in enumerate(sdatt[dt]):
-                self.items[-1].addChild(ResultNode(list(tt.values())))
-                global_index += 1
-                finished = 80 + int(15 * (global_index / float(overall_count)))
-                self.rec_indx[int(tt['func_addr'], 16)].append((i, j))
-                self.ui.wProgressBar.updateProgress(finished)
-
-
-        self.some_options_shown = None
-        self.ui.rvTable.setModel(ResultModel(self.heads, self.items, self.env_desc))
-        self.ui.wProgressBar.updateProgress(100)
-        self.prepareView()
 
     def prepareView(self):
         self.ui.rvTable.setColumnHidden(self.heads.index('Color'), True)
@@ -321,22 +361,50 @@ class IdaCluDialog(QWidget):
 
     def updatePb(self, curr_idx, total_count):
         finished = int(70 * (curr_idx / float(total_count)))
-        self.ui.wProgressBar.updateProgress(finished)
+        finished_msg = "Phase: searching (steps {}/{})".format(curr_idx, total_count)
+        try:
+            self.ui.wProgressBar.updateProgress(finished, finished_msg)
+        except plg_utils.UserCancelledError:
+            raise plg_utils.UserCancelledError
 
-    def updatePbFunc(self):
+    def updatePbFunc(self, pass_index=1, pass_count=1):
         self.sel_dirs = self.ui.wFolderFilter.getData()
         self.sel_prfx = self.ui.wPrefixFilter.getData()
         self.sel_colr = self.ui.wColorFilter.getSelectedColors()
 
         func_desc = list(idautils.Functions())
         func_count = len(func_desc)
-        for func_idx, func_addr in enumerate(func_desc):
+        for func_index, func_addr in enumerate(func_desc):
 
             if not self.isFuncRelevant(func_addr):
                 continue
 
-            finished = int(50 * (func_idx/float(func_count)))
-            self.ui.wProgressBar.updateProgress(finished)
+            progress = None
+            finished = None
+
+            if pass_count == 1:
+                index = func_index + 1
+                count = func_count
+                name = "funcs"
+
+                progress = func_index / float(func_count)
+                finished = int(50 * progress)
+            else:
+                index = pass_index
+                count = pass_count
+                name = "steps"
+
+                pass_contrib_one = 50 / pass_count
+                pass_contrib_sum = pass_contrib_one * (pass_index - 1)
+                progress = func_index / float(func_count)
+                finished =int(pass_contrib_sum + pass_contrib_one * progress)
+
+            finished_msg = "Phase: searching ({} {}/{})".format(name, index, count)
+            try:
+                self.ui.wProgressBar.updateProgress(finished, finished_msg)
+            except plg_utils.UserCancelledError:
+                raise plg_utils.UserCancelledError
+
             yield func_addr
 
     def isFuncRelevant(self, func_addr):

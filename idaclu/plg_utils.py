@@ -70,6 +70,10 @@ class RgbColor:
     def __str__(self):
         return self.get_to_str()
 
+class UserCancelledError(Exception):
+    pass
+
+
 def from_hex(hex_sv):
     return int(hex_sv, base=16)
 

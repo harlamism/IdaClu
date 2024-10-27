@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from collections import OrderedDict
 
+import idaapi
+
 from idaclu.qt_shims import (
     QAbstractItemView,
     QComboBox,
@@ -30,6 +32,7 @@ from idaclu.qt_shims import (
 )
 
 from idaclu.qt_utils import i18n
+from idaclu import ida_shims
 from idaclu import plg_utils
 
 
@@ -161,13 +164,14 @@ class LabelTool(QWidget):
 
 
 class ProgressIndicator(QWidget):
-    def __init__(self, name, parent=None):
+    def __init__(self, parent=None):
         super(ProgressIndicator, self).__init__(parent)
         layout = QVBoxLayout()
         layout.addWidget(self.initProgressBar(parent))
         layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
-        self.setProgress(0)
+        self._update_step = 2
+        self.reset()
         self._worker = Worker()
         self._worker.updateProgress.connect(self.setProgress)
 
@@ -180,18 +184,37 @@ class ProgressIndicator(QWidget):
         return progress
 
     def setProgress(self, progress):
-        if progress == 0:
-            self.setVisible(False)
-        elif progress == 100:
-            self.setVisible(False)
-            self._progress.setValue(0)
-        else:
-            self.setVisible(True)
-            self._progress.setValue(progress)
+        if progress % self._update_step == 0 and progress != self._progress.value():
+            if progress == self._update_step:
+                self.setVisible(True)
+                self._progress.setValue(progress)
+            elif progress == 100:
+                self.reset()
+            else:
+                self.setVisible(True)
+                self._progress.setValue(progress)
 
-    def updateProgress(self, progress):
-        self._worker.updateProgress.emit(progress)
+    def updateProgress(self, progress, msg=""):
+        if progress % self._update_step == 0 and progress != self._progress.value():
+            if progress == self._update_step:
+                idaapi.show_wait_box("Processing...")
+            elif progress == 100:
+                idaapi.hide_wait_box()
+            else:
+                msg0 = "Progress: {}%".format(progress)
+                idaapi.replace_wait_box(
+                    "{}\n{}".format(msg0.ljust(40), msg.ljust(40))
+                )
+            if ida_shims.user_cancelled():
+                idaapi.hide_wait_box()
+                self.reset()
+                raise plg_utils.UserCancelledError
+            idaapi.execute_ui_requests([lambda: None,])
+            self._worker.updateProgress.emit(progress)
 
+    def reset(self):
+        self._progress.reset()
+        self.setVisible(False)
 
 class ColorButton(QPushButton):
     def __init__(self, name, size=(30, 30), parent=None):

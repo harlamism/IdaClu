@@ -928,6 +928,11 @@ def get_highlighted_identifier():
     return fn()
 
 
+def user_cancelled():
+    fn = _get_fn_by_version(idaapi, 'user_cancelled', 'wasBreak', idaapi)
+    return fn()
+
+
 def start_ea(obj):
     """
     Return start ea for supplied object.

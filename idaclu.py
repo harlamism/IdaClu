@@ -138,7 +138,7 @@ class ScriptEnv():
         elif os.path.isdir(l_plg_path):
             plg_dst = self.dir_plugin[1]
             plg_scope = 'local'
-        plg_src = os.path.dirname(os.path.realpath(__file__))
+        plg_src = os.path.dirname(os.path.realpath(os.path.join(plg_dst, 'idaclu')))
         plg_type = 'copy' if plg_dst == plg_src else 'link'
         return (plg_dst, plg_src, plg_scope, plg_type)
 

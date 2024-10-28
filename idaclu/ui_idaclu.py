@@ -186,24 +186,18 @@ class Ui_PluginDialog(object):
 
         self.ColorFilterLayout = QHBoxLayout()
         self.ColorFilterLayout.setObjectName(u"ColorFilterLayout")
-        self.sColorFilterBeg = QSpacerItem(40, 26, QSizePolicy.Fixed, QSizePolicy.Minimum)
+        self.sColorFilterBeg = QSpacerItem(20, 26, QSizePolicy.Fixed, QSizePolicy.Minimum)
 
         self.ColorFilterLayout.addItem(self.sColorFilterBeg)
 
-        self.wColorFilter = PaletteTool(
-            u"ColorFilter",
-            (26, 26),
-            u"Filter",
-            True,
-            False,
-            self.FiltersGroup)
+        self.wColorFilter = FilterInputGroup([i18n("COLORS"), i18n("Pick colors...")], i18n("Pick colors..."), self.env_desc, self.FiltersGroup)
         self.wColorFilter.setObjectName(u"wColorFilter")
         self.wColorFilter.setMinimumSize(QSize(0, 26))
         self.wColorFilter.setMaximumSize(QSize(16777215, 26))
 
         self.ColorFilterLayout.addWidget(self.wColorFilter)
 
-        self.sColorFilterEnd = QSpacerItem(40, 26, QSizePolicy.Fixed, QSizePolicy.Minimum)
+        self.sColorFilterEnd = QSpacerItem(20, 26, QSizePolicy.Fixed, QSizePolicy.Minimum)
 
         self.ColorFilterLayout.addItem(self.sColorFilterEnd)
 

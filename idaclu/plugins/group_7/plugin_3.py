@@ -82,12 +82,12 @@ def get_data(func_gen=None, env_desc=None, plug_params=None):
         RgbColor((255,255,191), 'yellow'),
         RgbColor((191,255,191), 'green'),
         RgbColor((255,191,239), 'pink'),
-        RgbColor((255,255,255), 'white')
+        RgbColor((255,255,255), 'none')
     ]
 
     for func_addr in func_gen():
         func_colr = ida_shims.get_color(func_addr, idc.CIC_FUNC)
-        
+
         for color in colors:
             if RgbColor(func_colr) == color:
                 color_name = color.name

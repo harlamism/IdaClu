@@ -119,6 +119,7 @@ class IdaCluDialog(QWidget):
 
         self.initFoldersFilter()
         self.initPrefixFilter()
+        self.initColorFilter()
         self.bindUiElems()
 
     def toggleRecursion(self):
@@ -154,6 +155,19 @@ class IdaCluDialog(QWidget):
                     prefs[pfx] += 1
         return list(prefs.items())
 
+    def getFuncColors(self):
+        color_map = collections.defaultdict(int)
+        for func_addr in idautils.Functions():
+            func_colr = ida_shims.get_color(func_addr, idc.CIC_FUNC)
+            color_map[func_colr] += 1
+
+        colors = []
+        for k,v in color_map.items():
+            rgb = plg_utils.RgbColor(k)
+            colors.append((rgb.get_to_name(), v, rgb.get_to_tuple()))
+
+        return colors
+
     def viewSelChanged(self):
         self.ui.wLabelTool.setEnabled(True)
         self.ui.wColorTool.setEnabled(True)
@@ -162,6 +176,11 @@ class IdaCluDialog(QWidget):
         prefixes = self.getFuncPrefs(is_dummy=True)
         self.ui.wPrefixFilter.addItems(prefixes, True)
         self.ui.wPrefixFilter.setText("")
+
+    def initColorFilter(self):
+        colors = self.getFuncColors()
+        self.ui.wColorFilter.addItems(colors)
+        self.ui.wColorFilter.setText("")
 
     def initFoldersFilter(self):
         if self.env_desc.feat_folders:
@@ -298,7 +317,7 @@ class IdaCluDialog(QWidget):
                     if is_filter_embed == False:
                         self.sel_dirs = self.ui.wFolderFilter.getData()
                         self.sel_prfx = self.ui.wPrefixFilter.getData()
-                        self.sel_colr = self.ui.wColorFilter.getSelectedColors()
+                        self.sel_colr = self.ui.wColorFilter.getData()
                         if not self.isFuncRelevant(func_addr):
                             continue
 
@@ -370,7 +389,7 @@ class IdaCluDialog(QWidget):
     def updatePbFunc(self, pass_index=1, pass_count=1):
         self.sel_dirs = self.ui.wFolderFilter.getData()
         self.sel_prfx = self.ui.wPrefixFilter.getData()
-        self.sel_colr = self.ui.wColorFilter.getSelectedColors()
+        self.sel_colr = self.ui.wColorFilter.getData()
 
         func_desc = list(idautils.Functions())
         func_count = len(func_desc)
@@ -425,8 +444,9 @@ class IdaCluDialog(QWidget):
                     return False
         # function highlight color
         func_colr = plg_utils.RgbColor(ida_shims.get_color(func_addr, idc.CIC_FUNC))
-        if len(self.sel_colr):
-            if not any(func_colr == c for c in self.sel_colr):
+
+        if len(self.sel_colr) and self.sel_colr[0] != '':
+            if not any(func_colr == plg_utils.RgbColor(cn) for cn in self.sel_colr):
                 return False
         return True
 
@@ -445,7 +465,7 @@ class IdaCluDialog(QWidget):
         elif label_mode == 'prefix':
             label_name = self.ui.wLabelTool.getLabelName(sufx="_")
         return label_name
-            
+
     def updateFilters(self, label_mode, changelog):
         if label_mode == 'folder':
             fback = self.ui.wFolderFilter.chgItems(changelog, is_sorted=True)
@@ -453,6 +473,8 @@ class IdaCluDialog(QWidget):
                 ida_utils.remove_dir(fdir)
         elif label_mode == 'prefix':
             self.ui.wPrefixFilter.chgItems(changelog, is_sorted=True)
+        elif label_mode == 'color':
+            self.ui.wColorFilter.chgItems(changelog, is_sorted=True)
 
     def isDataSelected(self):
         return self.ui.rvTable.selectionModel().hasSelection()
@@ -499,7 +521,6 @@ class IdaCluDialog(QWidget):
 
             if len(changelog['sub']) or len(changelog['add']):
                 self.updateFilters(label_mode, changelog)
-
             if self.env_desc.ver_py > 2:
                 ida_utils.refresh_ui()
 
@@ -562,30 +583,39 @@ class IdaCluDialog(QWidget):
         if self.isDataSelected():
             sender_button = self.sender()
             btn_name = sender_button.objectName()
-            color = None
+            color_set = None
             if btn_name == 'SetColorBlue':
-                color = plg_utils.RgbColor((199,255,255), 'blue')
+                color_set = plg_utils.RgbColor((199,255,255), 'blue')
             elif btn_name == 'SetColorYellow':
-                color = plg_utils.RgbColor((255,255,191), 'yellow')
+                color_set = plg_utils.RgbColor((255,255,191), 'yellow')
             elif btn_name == 'SetColorGreen':
-                color = plg_utils.RgbColor((191,255,191), 'green')
+                color_set = plg_utils.RgbColor((191,255,191), 'green')
             elif btn_name == 'SetColorPink':
-                color = plg_utils.RgbColor((255,191,239), 'pink')
+                color_set = plg_utils.RgbColor((255,191,239), 'pink')
             elif btn_name == 'SetColorNone':
-                color = plg_utils.RgbColor((255,255,255), 'white')
+                color_set = plg_utils.RgbColor((255,255,255), 'none')
             else:
                 ida_shims.msg('ERROR: unknown palette button')
 
             addr_queue = self.getLabelAddrSet()
+
+            changelog = {
+                'sub': collections.defaultdict(int),
+                'add': collections.defaultdict(int),
+            }
 
             for func_addr in addr_queue:
                 for id_group, id_child in self.rec_indx[func_addr]:
                     id_col = self.heads.index('Address')
                     indx_group = self.ui.rvTable.model().index(id_group, 0, QtCore.QModelIndex())
                     indx_child = self.ui.rvTable.model().index(id_child, id_col, indx_group)
-                    ida_shims.set_color(func_addr, idc.CIC_FUNC, color.get_to_int())
-                    self.ui.rvTable.model().setData(indx_child, color.get_to_str())
+                    color_get = plg_utils.RgbColor(ida_shims.get_color(func_addr, idc.CIC_FUNC))
+                    ida_shims.set_color(func_addr, idc.CIC_FUNC, color_set.get_to_int())
+                    self.ui.rvTable.model().setData(indx_child, color_set.get_to_str())
 
+                    changelog['sub'][color_get.get_to_name()] += 1
+                    changelog['add'][color_set.get_to_name()] += 1
+            self.updateFilters('color', changelog)
             if self.env_desc.ver_py > 2:
                 ida_utils.refresh_ui()
 

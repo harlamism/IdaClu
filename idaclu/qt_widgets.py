@@ -315,12 +315,12 @@ class FilterInputGroup(QWidget):
             self._names = names
             self._state = False
 
-        name = names[0]
+        self.name = names[0]
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
-        layout.addWidget(self.initText(name, self))
-        layout.addWidget(self.initSelect(name))
+        layout.addWidget(self.initText(self.name, self))
+        layout.addWidget(self.initSelect(self.name))
         layout.setStretch(0, 0)
         layout.setStretch(1, 5)
         layout.setStretch(2, 7)
@@ -421,7 +421,10 @@ class FilterInputGroup(QWidget):
                     else:
                         self._items[lbl] = val
                 new_entry = '{} ({})'.format(lbl, self._items[lbl])
-                self._select.chgItem(idx, new_entry)
+                if self.name == 'COLORS' and plg_utils.RgbColor(lbl).is_color_defined():
+                    self._select.chgItem(idx, new_entry, plg_utils.RgbColor(lbl).get_to_tuple())
+                else:
+                    self._select.chgItem(idx, new_entry)
 
         if is_sorted:
             self.sortItems()
@@ -482,13 +485,13 @@ class CheckableComboBox(QComboBox):
         item.setData(Qt.Unchecked, Qt.CheckStateRole)
         self.model().appendRow(item)
 
-    def chgItem(self, row, text):
+    def chgItem(self, row, text, color=None):
         if row == -1:
-            self.addItem((text, None))
+            self.addItem((text, color if color else None))
         else:
             item = self.model().item(row)
             item.setData(text, role=Qt.DisplayRole)
-            
+
     def removeItem(self, row):
         self.model().removeRow(row)
 

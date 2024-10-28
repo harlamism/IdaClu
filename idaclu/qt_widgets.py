@@ -133,7 +133,7 @@ class LabelTool(QWidget):
         return text
 
     def getLabelMode(self):
-        return self.data[self.label_mode]['caption']
+        return self.data[self.label_mode]['caption'].lower()
 
     def setModeHandler(self, handler):
         self._recur_toggle.clicked.connect(handler)

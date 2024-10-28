@@ -485,7 +485,7 @@ class IdaCluDialog(QWidget):
                             for tkn in label_norm.split('_'):
                                 if tkn != '':
                                     changelog['add'][tkn] += 1
-                    else:  # == 'folder'
+                    elif label_mode == 'folder':
                         folder_src = self.folders_funcs.get(func_addr, '/')
                         if label_norm != folder_src:
                             self.folders_funcs[func_addr] = label_norm
@@ -493,11 +493,15 @@ class IdaCluDialog(QWidget):
                             changelog['add'][label_norm] += 1
                             ida_utils.set_func_folder(func_addr, folder_src, label_norm)
                             self.ui.rvTable.model().setData(indx_child, label_norm)
+                    else:
+                        ida_shims.msg('ERROR: unknown label mode')
+                        return
 
             if len(changelog['sub']) or len(changelog['add']):
                 self.updateFilters(label_mode, changelog)
 
-            ida_utils.refresh_ui()
+            if self.env_desc.ver_py > 2:
+                ida_utils.refresh_ui()
 
     def clsLabel(self):
         if self.ui.rvTable.selectionModel().hasSelection():
@@ -534,8 +538,10 @@ class IdaCluDialog(QWidget):
                         self.folders_funcs[func_addr] = '/'
                     else:
                         ida_shims.msg('ERROR: unknown label mode')
+                        return
             self.updateFilters(label_mode, changelog)
-            ida_utils.refresh_ui()
+            if self.env_desc.ver_py > 2:
+                ida_utils.refresh_ui()
 
     def showContextMenu(self, point):
         ix = self.ui.rvTable.indexAt(point)
@@ -580,7 +586,8 @@ class IdaCluDialog(QWidget):
                     ida_shims.set_color(func_addr, idc.CIC_FUNC, color.get_to_int())
                     self.ui.rvTable.model().setData(indx_child, color.get_to_str())
 
-            ida_utils.refresh_ui()
+            if self.env_desc.ver_py > 2:
+                ida_utils.refresh_ui()
 
     def getLabelAddrSet(self):
         id_col = self.heads.index('Address')

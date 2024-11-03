@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from collections import OrderedDict
+from collections import defaultdict, OrderedDict
 
 import idaapi
 
@@ -24,6 +24,7 @@ from idaclu.qt_shims import (
     QStandardItem,
     QStyledItemDelegate,
     Qt,
+    QtCore,
     QTreeView,
     QThread,
     QVBoxLayout,
@@ -654,28 +655,43 @@ class FrameLayout(QWidget):
 
 
 class CluTreeView(QTreeView):
-    def __init__(self, parent=None):
+    def __init__(self, env_desc, parent=None):
         QTreeView.__init__(self, parent=parent)
         self.setSortingEnabled(True)
         self.setAlternatingRowColors(True)
         self.setObjectName(u"rvTable")
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        self.setAlternatingRowColors(True)
         self.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
         self.header().sectionClicked.connect(self.sortByColumn)
         self.expanded.connect(self.save_expanded_state)
         self.collapsed.connect(self.save_expanded_state)
+
+        self.env = env_desc
+        self.heads = ['Name', 'Address', 'Size', 'Chunks', 'Nodes', 'Edges', 'Comment', 'Color']
+        if self.env.feat_folders:
+            self.heads.insert(1, 'Folder')
         self.expanded_state = {}
+        self.rec_indx = defaultdict(list)
 
     def sortByColumn(self, logicalIndex):
         currentOrder = self.header().sortIndicatorOrder()
         isChildSort = bool(self.expanded_state) and any(value == True for value in self.expanded_state.values())
         self.model().sort(logicalIndex, currentOrder, int(isChildSort))
+        self.indexRecords()
         for index, state in self.expanded_state.items():
             self.setExpanded(index, state)
 
+    def indexRecords(self):
+        self.rec_indx.clear()
+        id_col = self.heads.index('Address')
+        root_idx = QtCore.QModelIndex()
+        for r_num in range(self.model().rowCount(root_idx)):
+            p_idx = self.model().index(r_num, 0, root_idx)
+            for c_num in range(self.model().rowCount(p_idx)):
+                index = self.model().index(c_num, id_col, p_idx)
+                self.rec_indx[int(index.data(), 16)].append((r_num, c_num))
+
     def save_expanded_state(self, index):
         self.expanded_state[index] = self.isExpanded(index)
-

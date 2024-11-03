@@ -237,13 +237,7 @@ class Ui_PluginDialog(object):
         self.hlResultsView = QHBoxLayout(self.wResultsView)
         self.hlResultsView.setObjectName(u"hlResultsView")
         self.hlResultsView.setContentsMargins(0, 0, 0, 0)
-        self.rvTable = CluTreeView(self.wResultsView)
-        self.rvTable.setObjectName(u"rvTable")
-        self.rvTable.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.rvTable.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        self.rvTable.setAlternatingRowColors(True)
-        self.rvTable.setSelectionMode(QAbstractItemView.ExtendedSelection)
-
+        self.rvTable = CluTreeView(self.env_desc, self.wResultsView)
         self.hlResultsView.addWidget(self.rvTable)
 
 

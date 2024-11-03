@@ -105,11 +105,6 @@ class IdaCluDialog(QWidget):
         self.sel_dirs = []
         self.sel_prfx = []
         self.sel_colr = []
-        self.rec_indx = collections.defaultdict(list)
-
-        self.heads = ['Name', 'Address', 'Size', 'Chunks', 'Nodes', 'Edges', 'Comment', 'Color']
-        if env_desc.feat_folders:
-            self.heads.insert(1, 'Folder')
 
         sp_path = self.get_splg_root(self.env_desc.plg_src, 'idaclu')
         for frame in self.get_sp_controls(sp_path):
@@ -216,7 +211,7 @@ class IdaCluDialog(QWidget):
 
         try:
             sender_button = self.sender()
-            self.rec_indx.clear()
+            self.ui.rvTable.rec_indx.clear()
 
             full_spec_name = sender_button.objectName()
             elem, cat, plg = full_spec_name.split('#')
@@ -357,19 +352,19 @@ class IdaCluDialog(QWidget):
                     self.items[-1].addChild(ResultNode(list(tt.values())))
                     global_index += 1
                     finished = 80 + int(15 * (global_index / float(overall_count)))
-                    self.rec_indx[int(tt['func_addr'], 16)].append((i, j))
+                    self.ui.rvTable.rec_indx[int(tt['func_addr'], 16)].append((i, j))
                     self.ui.wProgressBar.updateProgress(finished, "Phase: rendering")
 
 
             self.some_options_shown = None
-            self.ui.rvTable.setModel(ResultModel(self.heads, self.items, self.env_desc))
+            self.ui.rvTable.setModel(ResultModel(self.ui.rvTable.heads, self.items, self.env_desc))
             self.ui.wProgressBar.updateProgress(100, "Phase: completing")
             self.prepareView()
         except plg_utils.UserCancelledError:
             return
 
     def prepareView(self):
-        self.ui.rvTable.setColumnHidden(self.heads.index('Color'), True)
+        self.ui.rvTable.setColumnHidden(self.ui.rvTable.heads.index('Color'), True)
         # color component values; irrelevant
         rvTableSelModel = self.ui.rvTable.selectionModel()
         rvTableSelModel.selectionChanged.connect(self.viewSelChanged)
@@ -495,8 +490,8 @@ class IdaCluDialog(QWidget):
             for func_addr in addr_queue:
                 func_name = ida_shims.get_func_name(func_addr)
 
-                for id_group, id_child in self.rec_indx[func_addr]:
-                    id_col = self.heads.index('Address')
+                for id_group, id_child in self.ui.rvTable.rec_indx[func_addr]:
+                    id_col = self.ui.rvTable.heads.index('Address')
                     indx_group = self.ui.rvTable.model().index(id_group, 0, QtCore.QModelIndex())
                     indx_child = self.ui.rvTable.model().index(id_child, id_col, indx_group)
                     if label_mode == 'prefix':
@@ -535,8 +530,8 @@ class IdaCluDialog(QWidget):
             for idx, addr_field in enumerate(set(data)):
                 func_addr = int(addr_field, base=16)
                 func_name = ida_shims.get_func_name(func_addr)
-                for id_group, id_child in self.rec_indx[func_addr]:
-                    id_col = self.heads.index('Address')
+                for id_group, id_child in self.ui.rvTable.rec_indx[func_addr]:
+                    id_col = self.ui.rvTable.heads.index('Address')
                     indx_group = self.ui.rvTable.model().index(id_group, 0, QtCore.QModelIndex())
                     indx_child = self.ui.rvTable.model().index(id_child, id_col, indx_group)
                     label_mode = self.ui.wLabelTool.getLabelMode()
@@ -605,8 +600,8 @@ class IdaCluDialog(QWidget):
             }
 
             for func_addr in addr_queue:
-                for id_group, id_child in self.rec_indx[func_addr]:
-                    id_col = self.heads.index('Address')
+                for id_group, id_child in self.ui.rvTable.rec_indx[func_addr]:
+                    id_col = self.ui.rvTable.heads.index('Address')
                     indx_group = self.ui.rvTable.model().index(id_group, 0, QtCore.QModelIndex())
                     indx_child = self.ui.rvTable.model().index(id_child, id_col, indx_group)
                     color_get = plg_utils.RgbColor(ida_shims.get_color(func_addr, idc.CIC_FUNC))
@@ -620,7 +615,7 @@ class IdaCluDialog(QWidget):
                 ida_utils.refresh_ui()
 
     def getLabelAddrSet(self):
-        id_col = self.heads.index('Address')
+        id_col = self.ui.rvTable.heads.index('Address')
         indexes = [idx for idx in self.ui.rvTable.selectionModel().selectedRows()]
         fields = [idx.sibling(idx.row(), id_col).data() for idx in indexes]
 

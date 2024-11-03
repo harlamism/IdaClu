@@ -176,9 +176,11 @@ class ResultModel(QAbstractItemModel):
 
         if is_child_sort != -1:
             self.beginResetModel()
+            # self.layoutAboutToBeChanged.emit()
             if is_child_sort:
                 for i, child in enumerate(self._root._children):
                     self._root._children[i]._children.sort(key=lambda x: x.data(column), reverse=(order == QtCore.Qt.DescendingOrder))
             else:
                 self._root._children.sort(key=lambda x: natural_sort_key(x.data(column)), reverse=(order == QtCore.Qt.DescendingOrder))
             self.endResetModel()
+            # self.layoutChanged.emit()

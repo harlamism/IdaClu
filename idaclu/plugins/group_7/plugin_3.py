@@ -89,7 +89,7 @@ def get_data(func_gen=None, env_desc=None, plug_params=None):
         func_colr = ida_shims.get_color(func_addr, idc.CIC_FUNC)
 
         for color in colors:
-            if RgbColor(func_colr) == color:
+            if RgbColor(func_colr).invert_color() == color:
                 color_name = color.name
                 report['data'][color_name].append(func_addr)
                 report['stat'][color_name] += 1

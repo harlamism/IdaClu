@@ -45,6 +45,9 @@ class RgbColor:
             raise ValueError("Invalid init value: {}/{}".format(type(color_ref), color_ref))
         self.name = color_nam
 
+    def invert_color(self):
+        self.r, self.g, self.b = self.b, self.g, self.r
+
     def is_color_defined(self):
         return self.get_to_int() in self.palette_val
 
@@ -73,8 +76,11 @@ class RgbColor:
     def get_to_str(self):
         return "rgb({},{},{})".format(self.r, self.g, self.b)
 
-    def get_to_int(self):
-        return (self.r << 16) + (self.g << 8) + self.b
+    def get_to_int(self, reverse=False):
+        return (
+            (self.b << 16 | self.g << 8 | self.r) if reverse
+            else (self.r << 16 | self.g << 8 | self.b)
+        )
 
     def get_to_hash(self):
         hex_string = hex(self.get_to_int())[2:]

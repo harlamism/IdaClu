@@ -159,6 +159,7 @@ class IdaCluDialog(QWidget):
         colors = []
         for k,v in color_map.items():
             rgb = plg_utils.RgbColor(k)
+            rgb.invert_color()
             colors.append((rgb.get_to_name(), v, rgb.get_to_tuple()))
 
         return colors
@@ -319,7 +320,8 @@ class IdaCluDialog(QWidget):
                     node_count, edge_count = ida_utils.get_nodes_edges(func_addr)
                     func_desc = idaapi.get_func(func_addr)
                     func_name = ida_shims.get_func_name(func_addr)
-                    func_colr = ida_shims.get_color(func_addr, idc.CIC_FUNC)
+                    func_colr = plg_utils.RgbColor(ida_shims.get_color(func_addr, idc.CIC_FUNC))
+                    func_colr.invert_color()
                     func_path = None
                     if self.env_desc.feat_folders:
                         func_path = self.folders_funcs[func_addr] if func_addr in self.folders_funcs else '/'
@@ -334,7 +336,7 @@ class IdaCluDialog(QWidget):
                     entry['func_node'] = node_count
                     entry['func_edge'] = edge_count
                     entry['func_comm'] = func_comm
-                    entry['func_colr'] = plg_utils.RgbColor(func_colr).get_to_str()
+                    entry['func_colr'] = func_colr.get_to_str()
 
                     sdatt[dt].append(entry)
                     global_index += 1
@@ -439,6 +441,7 @@ class IdaCluDialog(QWidget):
                     return False
         # function highlight color
         func_colr = plg_utils.RgbColor(ida_shims.get_color(func_addr, idc.CIC_FUNC))
+        func_colr.invert_color()
 
         if len(self.sel_colr) and self.sel_colr[0] != '':
             if not any(func_colr == plg_utils.RgbColor(cn) for cn in self.sel_colr):
@@ -612,7 +615,8 @@ class IdaCluDialog(QWidget):
             for func_addr in addr_queue:
                 for id_group, id_child in self.ui.rvTable.rec_indx[func_addr]:
                     color_get = plg_utils.RgbColor(ida_shims.get_color(func_addr, idc.CIC_FUNC))
-                    ida_shims.set_color(func_addr, idc.CIC_FUNC, color_set.get_to_int())
+                    color_get.invert_color()
+                    ida_shims.set_color(func_addr, idc.CIC_FUNC, color_set.get_to_int(True))
                     indx_child = model.index(id_child, id_col, model.index(id_group, 0))
                     model.setData(indx_child, color_set.get_to_str())
 

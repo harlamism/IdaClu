@@ -681,8 +681,15 @@ class CluTreeView(QTreeView):
         model = self.model()
         model.sort(logicalIndex, currentOrder, int(isChildSort))
         self.indexRecords()
-        for index, state in self.expanded_state.items():
-            self.setExpanded(index, state)
+
+        root_idx = QtCore.QModelIndex()
+        clu_count = model.rowCount(root_idx)
+        for value, state in self.expanded_state.items():
+            for r_num in range(clu_count):
+                p_idx = model.index(r_num, 0, root_idx)
+                if value == p_idx.data():
+                    self.setExpanded(p_idx, state)
+                    break
 
     def indexRecords(self):
         self.rec_indx.clear()
@@ -696,4 +703,4 @@ class CluTreeView(QTreeView):
                 self.rec_indx[int(index.data(), 16)].append((r_num, c_num))
 
     def save_expanded_state(self, index):
-        self.expanded_state[index] = self.isExpanded(index)
+        self.expanded_state[index.data()] = self.isExpanded(index)

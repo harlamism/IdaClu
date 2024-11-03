@@ -678,19 +678,21 @@ class CluTreeView(QTreeView):
     def sortByColumn(self, logicalIndex):
         currentOrder = self.header().sortIndicatorOrder()
         isChildSort = bool(self.expanded_state) and any(value == True for value in self.expanded_state.values())
-        self.model().sort(logicalIndex, currentOrder, int(isChildSort))
+        model = self.model()
+        model.sort(logicalIndex, currentOrder, int(isChildSort))
         self.indexRecords()
         for index, state in self.expanded_state.items():
             self.setExpanded(index, state)
 
     def indexRecords(self):
         self.rec_indx.clear()
+        model = self.model()
         id_col = self.heads.index('Address')
         root_idx = QtCore.QModelIndex()
-        for r_num in range(self.model().rowCount(root_idx)):
-            p_idx = self.model().index(r_num, 0, root_idx)
-            for c_num in range(self.model().rowCount(p_idx)):
-                index = self.model().index(c_num, id_col, p_idx)
+        for r_num in range(model.rowCount(root_idx)):
+            p_idx = model.index(r_num, 0, root_idx)
+            for c_num in range(model.rowCount(p_idx)):
+                index = model.index(c_num, id_col, p_idx)
                 self.rec_indx[int(index.data(), 16)].append((r_num, c_num))
 
     def save_expanded_state(self, index):

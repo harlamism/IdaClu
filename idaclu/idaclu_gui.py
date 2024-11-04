@@ -98,9 +98,10 @@ class IdaCluDialog(QWidget):
         self.is_mode_recursion = False
         # values to initialize the corresponding filter
 
+        self.clu_data = {}
         if self.env_desc.feat_folders:
             folders = ida_utils.get_func_dirs('/')
-            self.folders_funcs = ida_utils.get_dir_funcs(folders)
+            self.clu_data['dirs'] = ida_utils.get_dir_funcs(folders)
 
         self.sel_dirs = []
         self.sel_prfx = []
@@ -199,15 +200,6 @@ class IdaCluDialog(QWidget):
             yield
 
     def get_plugin_data(self):
-        def sort_with_progress(constant, mcounter):
-            def custom_sort(item):
-                index, element = item
-                mcounter[0] += 1
-                finished = 65 + int(15 * (mcounter[0] / float(constant)))
-                self.ui.wProgressBar.updateProgress(finished, "Phase: sorting")
-                return element['func_size']
-            return custom_sort
-
         self.ui.rvTable.setModelProxy(ResultModel(self.ui.rvTable.heads, [], self.env_desc))
 
         try:
@@ -269,23 +261,23 @@ class IdaCluDialog(QWidget):
                     self.option_sender = full_spec_name
                     return
 
-            agroup = getattr(module, 'get_data')
+            get_cs_data = getattr(module, 'get_data')
 
-            is_filter_embed = False
+            is_pre_filter = False
             if script_type == 'func':
-                is_filter_embed = True
+                is_pre_filter = True
                 gen = InstrumentedCallback(self.sample_generator)
-                agroup(gen, self.env_desc, plug_params)
+                get_cs_data(gen, self.env_desc, plug_params)
                 phase_count = gen.get_call_count()
                 gen = InstrumentedCallback(self.updatePbFunc, phase_count)
-                sdata = agroup(gen, self.env_desc, plug_params)  # pre-filter
+                cs_data = get_cs_data(gen, self.env_desc, plug_params)  # pre-filter
             elif script_type == 'custom':
-                is_filter_embed = False
+                is_pre_filter = False
                 gen = InstrumentedCallback(self.sample_generator)
-                agroup(gen, self.env_desc, plug_params)
+                get_cs_data(gen, self.env_desc, plug_params)
                 phase_count = gen.get_call_count()
                 gen = InstrumentedCallback(self.updatePb, phase_count)
-                sdata = agroup(gen, self.env_desc, plug_params)  # post-filter
+                cs_data = get_cs_data(gen, self.env_desc, plug_params)  # post-filter
             else:
                 ida_shims.msg('ERROR: Unknown plugin type')
                 return
@@ -293,72 +285,77 @@ class IdaCluDialog(QWidget):
 
             self.items = []
 
-            sdatt = collections.defaultdict(list)
-            overall_count = sum(len(lst) for lst in sdata.values())
-            global_index = 0
-            for dt in sdata:
-                for tt in sdata[dt]:
-                    func_addr = None
-                    func_comm = None
-                    if isinstance(tt, int):
-                        func_addr = tt
-                        func_comm = ""
-                    elif self.env_desc.ver_py == 2 and isinstance(tt, long):
-                        func_addr = int(tt)
-                        func_comm = ""
-                    elif isinstance(tt, tuple):
-                        func_addr = int(tt[0])
-                        func_comm = tt[1]
+            cp_data = collections.defaultdict(list)
+            cs_func_count = sum(len(band_fns) for band_fns in cs_data.values())
+            cs_func_idx = 0
 
-                    if is_filter_embed == False:
-                        self.sel_dirs = self.ui.wFolderFilter.getData()
-                        self.sel_prfx = self.ui.wPrefixFilter.getData()
-                        self.sel_colr = self.ui.wColorFilter.getData()
-                        if not self.isFuncRelevant(func_addr):
+            if is_pre_filter == False:
+                self.sel_dirs = self.ui.wFolderFilter.getData()
+                self.sel_prfx = self.ui.wPrefixFilter.getData()
+                self.sel_colr = self.ui.wColorFilter.getData()
+
+            # Iterating over "rubber-banded hooks" where:
+            #  - the "band" - is function cluster
+            #  - the "hook" - is function address (with optional comment)
+            # The aim to augment "hooks" with useful for analysis data
+            # to be presented in main tree-table view of the plugin.
+            for band_nam in cs_data:
+                for hook_val in cs_data[band_nam]:
+                    func_addr, func_cmnt = None, None
+                    if isinstance(hook_val, int):
+                        func_addr, func_cmnt = hook_val, ""
+                    elif self.env_desc.ver_py == 2 and isinstance(hook_val, long):
+                        func_addr, func_cmnt = int(hook_val), ""
+                    elif isinstance(hook_val, tuple):
+                        func_addr = int(hook_val[0])  # long in IDA v6.x;
+                        func_cmnt = str(hook_val[1])  # just in case
+
+                        if is_pre_filter == False and self.isFuncRelevant(func_addr) == False:
                             continue
 
-                    node_count, edge_count = ida_utils.get_nodes_edges(func_addr)
-                    func_desc = idaapi.get_func(func_addr)
+                    # Getting function info from function "hook".
+                    func_inst = idaapi.get_func(func_addr)
                     func_name = ida_shims.get_func_name(func_addr)
                     func_colr = plg_utils.RgbColor(ida_shims.get_color(func_addr, idc.CIC_FUNC))
                     func_colr.invert_color()
                     func_path = None
+                    func_node, func_edge = ida_utils.get_nodes_edges(func_addr)
+
+                    # Storing function data.
+                    func_desc = collections.OrderedDict()
+                    func_desc['func_name'] = func_name
+
                     if self.env_desc.feat_folders:
-                        func_path = self.folders_funcs[func_addr] if func_addr in self.folders_funcs else '/'
+                        dir_info = self.clu_data['dirs']
+                        func_path = dir_info[func_addr] if func_addr in dir_info else '/'
+                        func_desc['func_path'] = func_path
 
-                    entry = collections.OrderedDict()
-                    entry['func_name'] = func_name
-                    if func_path:
-                        entry['func_path'] = func_path
-                    entry['func_addr'] = hex(int(func_addr))
-                    entry['func_size'] = ida_shims.calc_func_size(func_desc)
-                    entry['func_chnk'] = len(list(idautils.Chunks(func_addr)))
-                    entry['func_node'] = node_count
-                    entry['func_edge'] = edge_count
-                    entry['func_comm'] = func_comm
-                    entry['func_colr'] = func_colr.get_to_str()
+                    func_desc['func_addr'] = hex(func_addr)
+                    func_desc['func_size'] = ida_shims.calc_func_size(func_inst)
+                    func_desc['func_chnk'] = len(list(idautils.Chunks(func_addr)))
+                    func_desc['func_node'] = func_node  # graph node count
+                    func_desc['func_edge'] = func_edge  # graph edge count
+                    func_desc['func_cmnt'] = func_cmnt
+                    func_desc['func_colr'] = func_colr.get_to_str()
 
-                    sdatt[dt].append(entry)
-                    global_index += 1
-                    finished = 50 + int(15 * (global_index / float(overall_count)))
-                    self.ui.wProgressBar.updateProgress(finished, "Phase: augmenting")
+                    cp_data[band_nam].append(func_desc)
+                    cs_func_idx += 1
+                    # Augmenting function data is represented as 15% of progress.
+                    cs_prog = plg_utils.get_prog_val(50, 15, cs_func_idx, cs_func_count)
+                    self.ui.wProgressBar.updateProgress(cs_prog, "Phase: augmenting")
 
-            mut_counter = [0]
-            for key, value in sdatt.items():
-                sdatt[key] = sorted(enumerate(value), key=sort_with_progress(overall_count, mut_counter))
+            # Constructing list of node trees.
+            # The list contains only parent nodes, that internally have references to child nodes.
+            cs_func_idx = 0
+            for band_idx, (band_nam, func_dss) in enumerate(cp_data.items()):
+                self.items.append(ResultNode("{} ({})".format(band_nam, len(func_dss))))
+                for func_idx, func_dsc in enumerate(func_dss):
+                    self.items[-1].addChild(ResultNode(list(func_dsc.values())))
+                    cs_func_idx += 1
+                    finished = plg_utils.get_prog_val(65, 30, cs_func_idx, cs_func_count)
+                    self.ui.rvTable.rec_indx[int(func_dsc['func_addr'], 16)].append((band_idx, func_idx))
+                    self.ui.wProgressBar.updateProgress(finished, "Phase: indexing")
 
-            global_index = 0
-            for i, dt in enumerate(sdatt):
-                self.items.append(ResultNode("{} ({})".format(dt, len(sdatt[dt]))))
-                for j, (idx, tt) in enumerate(sdatt[dt]):
-                    self.items[-1].addChild(ResultNode(list(tt.values())))
-                    global_index += 1
-                    finished = 80 + int(15 * (global_index / float(overall_count)))
-                    self.ui.rvTable.rec_indx[int(tt['func_addr'], 16)].append((i, j))
-                    self.ui.wProgressBar.updateProgress(finished, "Phase: rendering")
-
-
-            self.some_options_shown = None
             self.ui.rvTable.setModelProxy(ResultModel(self.ui.rvTable.heads, self.items, self.env_desc))
             self.ui.wProgressBar.updateProgress(100, "Phase: completing")
             self.prepareView()
@@ -366,14 +363,16 @@ class IdaCluDialog(QWidget):
             return
 
     def prepareView(self):
-        self.ui.rvTable.setColumnHidden(self.ui.rvTable.heads.index('Color'), True)
-        # color component values; irrelevant
-        rvTableSelModel = self.ui.rvTable.selectionModel()
+        view = self.ui.rvTable
+        rvTableSelModel = view.selectionModel()
+        tree_header = view.header()
+
+        view.setColumnHidden(self.ui.rvTable.heads.index('Color'), True)
         rvTableSelModel.selectionChanged.connect(self.viewSelChanged)
-        self.ui.rvTable.header().resizeSection(0, 240)
-        self.ui.rvTable.header().resizeSection(1, 96)
-        self.ui.rvTable.header().resizeSection(2, 96)
-        self.ui.rvTable.header().resizeSection(3, 96)
+        tree_header.resizeSection(0, 240)
+        tree_header.resizeSection(1, 96)
+        tree_header.resizeSection(2, 96)
+        tree_header.resizeSection(3, 96)
 
     def updatePb(self, curr_idx, total_count):
         finished = int(70 * (curr_idx / float(total_count)))
@@ -426,8 +425,8 @@ class IdaCluDialog(QWidget):
     def isFuncRelevant(self, func_addr):
         # function directories
         if len(self.sel_dirs) and self.sel_dirs[0] != '':
-            if not (func_addr in self.folders_funcs and
-                self.folders_funcs[func_addr] in self.sel_dirs):
+            if not (func_addr in self.clu_data['dirs'] and
+                self.clu_data['dirs'][func_addr] in self.sel_dirs):
                 return False
         # function name prefixes
         func_name = ida_shims.get_func_name(func_addr)
@@ -510,9 +509,9 @@ class IdaCluDialog(QWidget):
                                 if tkn != '':
                                     changelog['add'][tkn] += 1
                     elif label_mode == 'folder':
-                        folder_src = self.folders_funcs.get(func_addr, '/')
+                        folder_src = self.clu_data['dirs'].get(func_addr, '/')
                         if label_norm != folder_src:
-                            self.folders_funcs[func_addr] = label_norm
+                            self.clu_data['dirs'][func_addr] = label_norm
                             changelog['sub'][folder_src] += 1
                             changelog['add'][label_norm] += 1
                             ida_utils.set_func_folder(func_addr, folder_src, label_norm)
@@ -561,7 +560,7 @@ class IdaCluDialog(QWidget):
                             model.layoutChanged.emit()
                             changelog['sub'][last_pref] += 1
                     elif label_mode == 'folder':
-                        func_fldr = self.folders_funcs.get(func_addr, '/')
+                        func_fldr = self.clu_data['dirs'].get(func_addr, '/')
                         changelog['sub'][func_fldr] += 1
                         changelog['add']['/'] += 1
                         ida_utils.set_func_folder(func_addr, func_fldr, '/')
@@ -569,7 +568,7 @@ class IdaCluDialog(QWidget):
                         model.layoutAboutToBeChanged.emit()
                         model.setData(indx_child, '/')
                         model.layoutChanged.emit()
-                        self.folders_funcs[func_addr] = '/'
+                        self.clu_data['dirs'][func_addr] = '/'
                     else:
                         ida_shims.msg('ERROR: unknown label mode')
                         return

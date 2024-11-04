@@ -149,3 +149,6 @@ def import_path(path):
     module = __import__(os.path.basename(path))
     sys.path.pop()
     return module
+
+def get_prog_val(base, range, part, whole):
+    return base + int(range * (part / whole))

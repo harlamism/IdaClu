@@ -503,7 +503,9 @@ class IdaCluDialog(QWidget):
                             func_name_new = plg_utils.add_prefix(func_name, label_norm, False)
                             ida_shims.set_name(func_addr, func_name_new, idaapi.SN_CHECK)
                             indx_child = model.index(id_child, name_col, model.index(id_group, 0))
+                            model.layoutAboutToBeChanged.emit()
                             model.setData(indx_child, func_name_new)
+                            model.layoutChanged.emit()
                             for tkn in label_norm.split('_'):
                                 if tkn != '':
                                     changelog['add'][tkn] += 1
@@ -515,7 +517,9 @@ class IdaCluDialog(QWidget):
                             changelog['add'][label_norm] += 1
                             ida_utils.set_func_folder(func_addr, folder_src, label_norm)
                             indx_child = model.index(id_child, fldr_col, model.index(id_group, 0))
+                            model.layoutAboutToBeChanged.emit()
                             model.setData(indx_child, label_norm)
+                            model.layoutChanged.emit()
                     else:
                         ida_shims.msg('ERROR: unknown label mode')
                         return

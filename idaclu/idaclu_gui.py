@@ -208,7 +208,7 @@ class IdaCluDialog(QWidget):
                 return element['func_size']
             return custom_sort
 
-        self.ui.rvTable.setModel(ResultModel(self.ui.rvTable.heads, [], self.env_desc))
+        self.ui.rvTable.setModelProxy(ResultModel(self.ui.rvTable.heads, [], self.env_desc))
 
         try:
             sender_button = self.sender()
@@ -359,7 +359,7 @@ class IdaCluDialog(QWidget):
 
 
             self.some_options_shown = None
-            self.ui.rvTable.setModel(ResultModel(self.ui.rvTable.heads, self.items, self.env_desc))
+            self.ui.rvTable.setModelProxy(ResultModel(self.ui.rvTable.heads, self.items, self.env_desc))
             self.ui.wProgressBar.updateProgress(100, "Phase: completing")
             self.prepareView()
         except plg_utils.UserCancelledError:
@@ -552,7 +552,9 @@ class IdaCluDialog(QWidget):
                             func_name_new = ida_utils.get_cleaned_funcname(func_name_new)
                             ida_shims.set_name(func_addr, func_name_new, idaapi.SN_NOWARN)
                             indx_child = model.index(id_child, name_col, model.index(id_group, 0))
+                            model.layoutAboutToBeChanged.emit()
                             model.setData(indx_child, func_name_new)
+                            model.layoutChanged.emit()
                             changelog['sub'][last_pref] += 1
                     elif label_mode == 'folder':
                         func_fldr = self.folders_funcs.get(func_addr, '/')
@@ -560,7 +562,9 @@ class IdaCluDialog(QWidget):
                         changelog['add']['/'] += 1
                         ida_utils.set_func_folder(func_addr, func_fldr, '/')
                         indx_child = model.index(id_child, fldr_col, model.index(id_group, 0))
+                        model.layoutAboutToBeChanged.emit()
                         model.setData(indx_child, '/')
+                        model.layoutChanged.emit()
                         self.folders_funcs[func_addr] = '/'
                     else:
                         ida_shims.msg('ERROR: unknown label mode')
@@ -618,7 +622,9 @@ class IdaCluDialog(QWidget):
                     color_get.invert_color()
                     ida_shims.set_color(func_addr, idc.CIC_FUNC, color_set.get_to_int(True))
                     indx_child = model.index(id_child, id_col, model.index(id_group, 0))
+                    model.layoutAboutToBeChanged.emit()
                     model.setData(indx_child, color_set.get_to_str())
+                    model.layoutChanged.emit()
 
                     changelog['sub'][color_get.get_to_name()] += 1
                     changelog['add'][color_set.get_to_name()] += 1

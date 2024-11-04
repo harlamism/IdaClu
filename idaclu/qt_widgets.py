@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from collections import defaultdict, OrderedDict
+from functools import partial
+from re import split
 
 import idaapi
 
@@ -11,6 +13,7 @@ from idaclu.qt_shims import (
     QEvent,
     QFont,
     QFrame,
+    QHeaderView,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -21,6 +24,7 @@ from idaclu.qt_shims import (
     QPushButton,
     QSize,
     QSizePolicy,
+    QSortFilterProxyModel,
     QStandardItem,
     QStyledItemDelegate,
     Qt,
@@ -654,6 +658,159 @@ class FrameLayout(QWidget):
             painter.end()
 
 
+class FilterHeader(QHeaderView):
+    filterChanged = Signal(int)
+
+    def __init__(self, parent):
+        super().__init__(Qt.Horizontal, parent)
+        self._editors = []
+        self._padding = 4
+        self.filters_visible = False  # Initialize filters_visible
+        self.setStretchLastSection(True)
+        self.setDefaultAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.setSortIndicatorShown(False)
+        self.sectionResized.connect(self.adjustPositions)
+        parent.header().sectionResized.connect(self.adjustPositions)
+        parent.horizontalScrollBar().valueChanged.connect(self.adjustPositions)
+
+    def setFilterBoxes(self, count):
+        while self._editors:
+            editor = self._editors.pop()
+            editor.deleteLater()
+        for index in range(count):
+            editor = QLineEdit(self.parent())
+            editor.setPlaceholderText('Filter')
+            editor.textChanged.connect(partial(self.filterChanged.emit, index))  # Emit filterChanged on each keystroke
+            editor.setVisible(self.filters_visible)  # Initial visibility state
+            self._editors.append(editor)
+        self.adjustPositions()
+
+    def toggleFilterVisibility(self):
+        """Toggle the visibility of the filter inputs."""
+        self.filters_visible = not self.filters_visible
+        for editor in self._editors:
+            editor.setVisible(self.filters_visible)
+        self.updateGeometries()
+        self.adjustPositions()
+
+    def sizeHint(self):
+        size = super().sizeHint()
+        if self._editors and self.filters_visible:
+            height = self._editors[0].sizeHint().height()
+            size.setHeight(size.height() + height + self._padding)
+        return size
+
+    def updateGeometries(self):
+        if self._editors and self.filters_visible:
+            height = self._editors[0].sizeHint().height()
+            self.setViewportMargins(0, 0, 0, height + self._padding)
+        else:
+            self.setViewportMargins(0, 0, 0, 0)
+        super().updateGeometries()
+        self.adjustPositions()
+
+    def adjustPositions(self):
+        if not self.filters_visible:
+            return
+        for index, editor in enumerate(self._editors):
+            height = editor.sizeHint().height()
+            editor.move(self.sectionPosition(index) - self.offset() + 2, height + (self._padding // 2))
+            editor.resize(self.sectionSize(index), height)
+
+    def filterText(self, index):
+        if 0 <= index < len(self._editors):
+            return self._editors[index].text()
+        return ''
+
+
+class FilterProxyModel(QSortFilterProxyModel):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setDynamicSortFilter(True)
+        self.filter_texts = {}
+
+    def setFilterText(self, index, text):
+        self.filter_texts[index] = text.lower()
+        self.invalidateFilter()
+
+    def filterAcceptsRow(self, source_row, source_parent):
+        model = self.sourceModel()
+        index = model.index(source_row, 0, source_parent)
+        # Both parent-items and child-items are processed by this function.
+        return self.hasMatch(index)
+
+    def rowMatchesFilter(self, index):
+        filters = self.filter_texts.items()
+
+        # No filters defined, so preserve any row.
+        if len(filters) == 0:
+            return True
+
+        for col, filter_text in filters:
+            if filter_text:
+                cell_data = self.sourceModel().data(index.sibling(index.row(), col))
+                if filter_text not in cell_data.lower():
+                    return False
+
+        # Preserve row if no filter triggered reject in this row.
+        return True
+
+    def hasMatch(self, parent_index):
+        model = self.sourceModel()
+        row_count = model.rowCount(parent_index)
+
+        for row in range(row_count):
+            child_index = model.index(row, 0, parent_index)
+            if self.rowMatchesFilter(child_index):
+                return True
+
+        return self.rowMatchesFilter(parent_index)
+
+    def lessThan(self, left_index, right_index):
+        # Fetch data for comparison
+        left_data = left_index.data()
+        right_data = right_index.data()
+
+        # Apply natural sorting if both items are strings
+        if isinstance(left_data, str) and isinstance(right_data, str):
+            return self.natural_sort(left_data, right_data)
+
+        # Otherwise, fall back to default comparison
+        return left_data < right_data
+
+    def natural_sort_key(self, s):
+        return [int(text) if text.isdigit() else text.lower() for text in split('([0-9]+)', str(s))]
+
+    def natural_sort(self, left, right):
+        return self.natural_sort_key(left) > self.natural_sort_key(right)
+
+    def sort(self, column, order, is_child_sort=-1):
+        # Determine the source model for sorting
+        source_model = self.sourceModel()
+        # self.beginResetModel()
+        self.layoutAboutToBeChanged.emit()
+
+        if is_child_sort != -1:  # Sorting for the parent
+            if is_child_sort:  # Sorting for children
+                # Sort the children for each root item
+                self.sort_child_items(source_model, column, order)
+            else:
+                # Sort the root level
+                self.sort_root_items(source_model, column, order)
+
+        # self.endResetModel()
+        self.layoutChanged.emit()
+
+    def sort_root_items(self, model, column, order):
+        model.iroot._children.sort(key=lambda x: self.natural_sort_key(x.data(column)),
+                                    reverse=(order == Qt.DescendingOrder))
+
+    def sort_child_items(self, model, column, order):
+        for i, child in enumerate(model.iroot._children):
+            child._children.sort(key=lambda x: self.natural_sort_key(x.data(column)),
+                                reverse=(order == Qt.DescendingOrder))
+
+
 class CluTreeView(QTreeView):
     def __init__(self, env_desc, parent=None):
         QTreeView.__init__(self, parent=parent)
@@ -664,7 +821,6 @@ class CluTreeView(QTreeView):
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
-        self.header().sectionClicked.connect(self.sortByColumn)
         self.expanded.connect(self.save_expanded_state)
         self.collapsed.connect(self.save_expanded_state)
 
@@ -674,6 +830,12 @@ class CluTreeView(QTreeView):
             self.heads.insert(1, 'Folder')
         self.expanded_state = {}
         self.rec_indx = defaultdict(list)
+
+        self._header = FilterHeader(self)
+        self._header.filterChanged.connect(self.applyFilter)  # Connect signal for instant filtering
+        self.setHeader(self._header)
+        # Consider the order
+        self.header().sectionClicked.connect(self.sortByColumn)
 
     def sortByColumn(self, logicalIndex):
         currentOrder = self.header().sortIndicatorOrder()
@@ -691,6 +853,9 @@ class CluTreeView(QTreeView):
                     self.setExpanded(p_idx, state)
                     break
 
+        self.model().invalidateFilter()
+        self.indexRecords()
+
     def indexRecords(self):
         self.rec_indx.clear()
         model = self.model()
@@ -704,3 +869,22 @@ class CluTreeView(QTreeView):
 
     def save_expanded_state(self, index):
         self.expanded_state[index.data()] = self.isExpanded(index)
+
+    def setModelProxy(self, model):
+        self.proxy_model = FilterProxyModel(self)
+        self.proxy_model.setSourceModel(model)
+        self.setModel(self.proxy_model)
+        self.collapseAll()
+        self._header.setFilterBoxes(self.model().columnCount())
+
+    def keyPressEvent(self, event):
+        # Toggle filter visibility on Ctrl+F
+        if event.key() == Qt.Key_F and event.modifiers() & Qt.ControlModifier:
+            self._header.toggleFilterVisibility()
+        else:
+            super().keyPressEvent(event)
+
+    def applyFilter(self, index):
+        filter_text = self._header.filterText(index)
+        self.proxy_model.setFilterText(index, filter_text)
+        self.indexRecords()

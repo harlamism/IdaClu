@@ -160,21 +160,6 @@ class ResultModel(QAbstractItemModel):
             self.dataChanged.emit(beg_idx, roles)
         return True
 
-    def sort(self, column, order, is_child_sort=-1):
-        def natural_sort_key(s):
-            return [int(text) if text.isdigit() else text.lower() for text in split('([0-9]+)', s)]
-
-        if is_child_sort != -1:
-            self.beginResetModel()
-            # self.layoutAboutToBeChanged.emit()
-            if is_child_sort:
-                for i, child in enumerate(self.iroot._children):
-                    self.iroot._children[i]._children.sort(key=lambda x: x.data(column), reverse=(order == QtCore.Qt.DescendingOrder))
-            else:
-                self.iroot._children.sort(key=lambda x: natural_sort_key(x.data(column)), reverse=(order == QtCore.Qt.DescendingOrder))
-            self.endResetModel()
-            # self.layoutChanged.emit()
-
     def getItem(self, index):
         if index and index.isValid():
             # Get the pointer to the item associated with the index.

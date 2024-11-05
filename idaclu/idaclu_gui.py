@@ -220,68 +220,84 @@ class IdaCluDialog(QWidget):
             script_view = getattr(module, 'SCRIPT_VIEW', 'table')
             script_args = getattr(module, 'SCRIPT_ARGS', [])
 
-            plug_params = {}
-            if self.option_sender != None:
-                widget = self.ui.ScriptsArea.findChild(QPushButton, self.option_sender)
-                parent_layout = widget.parent().layout()
+            directory = os.path.dirname(self.env_desc.idb_path)
+            json_filename = "{}_idaclu_{}.json".format(self.env_desc.ida_module, script_name.lower().replace(' ', '_'))
+            cs_cache_file = os.path.join(directory, json_filename)
 
-                if self.option_sender == full_spec_name:
+            cs_data = None
+            is_pre_filter = script_type == 'func'
+
+            if self.ui.ConfigTool.is_save and os.path.isfile(cs_cache_file):
+                with open(cs_cache_file, "r") as json_file:
+                    cs_data = json.load(json_file)
+                self.ui.wProgressBar.updateProgress(50, "Phase: loading")
+            else:
+                if os.path.isfile(cs_cache_file):
+                    os.remove(cs_cache_file)
+
+                plug_params = {}
+                if self.option_sender != None:
+                    widget = self.ui.ScriptsArea.findChild(QPushButton, self.option_sender)
+                    parent_layout = widget.parent().layout()
+
+                    if self.option_sender == full_spec_name:
+                        for i in range(parent_layout.count()):
+                            sub_item = parent_layout.itemAt(i)
+                            if sub_item:
+                                sub_widget = sub_item.widget()
+                                if sub_widget and (isinstance(sub_widget, QLineEdit)):
+                                    param_name = sub_widget.objectName().replace("{}__".format(full_spec_name), "")
+                                    plug_params[param_name] = sub_widget.text()  # .toPlainText()
+
                     for i in range(parent_layout.count()):
                         sub_item = parent_layout.itemAt(i)
                         if sub_item:
+                            if isinstance(sub_item, QSpacerItem):
+                                parent_layout.removeItem(sub_item)
+                                continue
                             sub_widget = sub_item.widget()
                             if sub_widget and (isinstance(sub_widget, QLineEdit)):
-                                param_name = sub_widget.objectName().replace("{}__".format(full_spec_name), "")
-                                plug_params[param_name] = sub_widget.text()  # .toPlainText()
+                                parent_layout.removeWidget(sub_widget)
+                                sub_widget.setParent(None)
 
-                for i in range(parent_layout.count()):
-                    sub_item = parent_layout.itemAt(i)
-                    if sub_item:
-                        if isinstance(sub_item, QSpacerItem):
-                            parent_layout.removeItem(sub_item)
-                            continue
-                        sub_widget = sub_item.widget()
-                        if sub_widget and (isinstance(sub_widget, QLineEdit)):
-                            parent_layout.removeWidget(sub_widget)
-                            sub_widget.setParent(None)
+                    self.option_sender = None
 
-                self.option_sender = None
+                elif self.option_sender == None and len(script_args) > 0:
+                    parent_widget = sender_button.parent()
+                    if parent_widget:
+                        for i, (ctrl_name, var_name, ctrl_ph) in enumerate(script_args):
+                            text_edit = QLineEdit()
+                            text_edit.setPlaceholderText(ctrl_ph)
+                            text_edit.setMaximumSize(QSize(16777215, 30))
+                            parent_widget.layout().addWidget(text_edit)
+                            text_edit.setObjectName("{}__{}".format(full_spec_name, var_name))
+                        spacer = QSpacerItem(20, 30, QSizePolicy.Fixed, QSizePolicy.MinimumExpanding)
+                        parent_widget.layout().addStretch(1)
+                        self.option_sender = full_spec_name
+                        return
 
-            elif self.option_sender == None and len(script_args) > 0:
-                parent_widget = sender_button.parent()
-                if parent_widget:
-                    for i, (ctrl_name, var_name, ctrl_ph) in enumerate(script_args):
-                        text_edit = QLineEdit()
-                        text_edit.setPlaceholderText(ctrl_ph)
-                        text_edit.setMaximumSize(QSize(16777215, 30))
-                        parent_widget.layout().addWidget(text_edit)
-                        text_edit.setObjectName("{}__{}".format(full_spec_name, var_name))
-                    spacer = QSpacerItem(20, 30, QSizePolicy.Fixed, QSizePolicy.MinimumExpanding)
-                    parent_widget.layout().addStretch(1)
-                    self.option_sender = full_spec_name
+                get_cs_data = getattr(module, 'get_data')
+
+                is_pre_filter = False
+                if script_type == 'func':
+                    gen = InstrumentedCallback(self.sample_generator)
+                    get_cs_data(gen, self.env_desc, plug_params)
+                    phase_count = gen.get_call_count()
+                    gen = InstrumentedCallback(self.updatePbFunc, phase_count)
+                    cs_data = get_cs_data(gen, self.env_desc, plug_params)  # pre-filter
+                elif script_type == 'custom':
+                    gen = InstrumentedCallback(self.sample_generator)
+                    get_cs_data(gen, self.env_desc, plug_params)
+                    phase_count = gen.get_call_count()
+                    gen = InstrumentedCallback(self.updatePb, phase_count)
+                    cs_data = get_cs_data(gen, self.env_desc, plug_params)  # post-filter
+                else:
+                    ida_shims.msg('ERROR: Unknown plugin type')
                     return
 
-            get_cs_data = getattr(module, 'get_data')
-
-            is_pre_filter = False
-            if script_type == 'func':
-                is_pre_filter = True
-                gen = InstrumentedCallback(self.sample_generator)
-                get_cs_data(gen, self.env_desc, plug_params)
-                phase_count = gen.get_call_count()
-                gen = InstrumentedCallback(self.updatePbFunc, phase_count)
-                cs_data = get_cs_data(gen, self.env_desc, plug_params)  # pre-filter
-            elif script_type == 'custom':
-                is_pre_filter = False
-                gen = InstrumentedCallback(self.sample_generator)
-                get_cs_data(gen, self.env_desc, plug_params)
-                phase_count = gen.get_call_count()
-                gen = InstrumentedCallback(self.updatePb, phase_count)
-                cs_data = get_cs_data(gen, self.env_desc, plug_params)  # post-filter
-            else:
-                ida_shims.msg('ERROR: Unknown plugin type')
-                return
-            sitems = None
+                if self.ui.ConfigTool.is_save:
+                    with open(cs_cache_file, "w") as json_file:
+                        json.dump(cs_data, json_file, indent=4)
 
             self.items = []
 
@@ -306,7 +322,7 @@ class IdaCluDialog(QWidget):
                         func_addr, func_cmnt = hook_val, ""
                     elif self.env_desc.ver_py == 2 and isinstance(hook_val, long):
                         func_addr, func_cmnt = int(hook_val), ""
-                    elif isinstance(hook_val, tuple):
+                    elif isinstance(hook_val, tuple) or isinstance(hook_val, list):
                         func_addr = int(hook_val[0])  # long in IDA v6.x;
                         func_cmnt = str(hook_val[1])  # just in case
 

@@ -15,6 +15,7 @@ from idaclu.qt_shims import (
     QFrame,
     QHeaderView,
     QHBoxLayout,
+    QIcon,
     QLabel,
     QLineEdit,
     QPainter,
@@ -221,14 +222,20 @@ class ProgressIndicator(QWidget):
         self._progress.reset()
         self.setVisible(False)
 
-class ColorButton(QPushButton):
-    def __init__(self, name, size=(30, 30), parent=None):
+class ToolButton(QPushButton):
+    def __init__(self, name=None, size=(30, 30), parent=None):
         QPushButton.__init__(self, parent=parent)
-        self.setObjectName(name)
+        if name:
+            self.setObjectName(name)
         self.setMinimumSize(QSize(*size))
         self.setMaximumSize(QSize(*size))
-        self.setCheckable(True)
         self.setCursor(QCursor(Qt.PointingHandCursor))
+
+
+class ColorButton(ToolButton):
+    def __init__(self, name, size=(30, 30), parent=None):
+        ToolButton.__init__(self, name=name, parent=parent)
+        self.setCheckable(True)
 
 
 class Worker(QThread):
@@ -888,3 +895,34 @@ class CluTreeView(QTreeView):
         filter_text = self._header.filterText(index)
         self.proxy_model.setFilterText(index, filter_text)
         self.indexRecords()
+
+
+class ConfigTool(QWidget):
+    def __init__(self, parent=None, env=None):
+        QWidget.__init__(self, parent=parent)
+        self.env = env
+        self.is_save = True
+        layout = self.genLayout()
+        self.setLayout(layout)
+        self.setMinimumSize(QSize(32, 30))
+        self.setMaximumSize(QSize(16777215, 30))
+        self._saveBtn.clicked.connect(self.toggleSave)
+        self.loadIcon()
+
+    def genLayout(self):
+        layout = QHBoxLayout()
+        self._saveBtn = ToolButton()
+        layout.addWidget(self._saveBtn)
+        layout.setContentsMargins(0, 0, 0, 0)
+        return layout
+
+    def loadIcon(self):
+        saveIcon = QIcon(u":/idaclu/save_{}_64.png".format(int(self.is_save)))
+        self._saveBtn.setIcon(saveIcon)
+
+    def toggleSave(self):
+        self.is_save = not self.is_save
+        self.loadIcon()
+        action = ["enable", "disable"][int(self.is_save)]
+        self._saveBtn.setToolTip("{} result caching".format(action.capitalize()))
+        return self.is_save

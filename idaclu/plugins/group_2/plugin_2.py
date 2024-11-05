@@ -36,7 +36,7 @@ def get_data(progress_callback=None, env_desc=None, plug_params=None):
 
     for i, tstr in enumerate(strs):
         str_raw = ida_shims.get_strlit_contents(tstr)
-        str_dec = str_raw.decode('utf-8', errors='replace').encode('ascii', errors='replace')
+        str_dec = str_raw.decode('utf-8', errors='replace').encode('ascii', errors='replace').decode("utf-8")
 
         for xref in idautils.XrefsTo(tstr.ea):
             xref_addr = xref.frm

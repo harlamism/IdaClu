@@ -45,6 +45,7 @@ from idaclu.qt_utils import i18n
 
 from idaclu.qt_widgets import (
     CluTreeView,
+    ConfigTool,
     FilterInputGroup,
     LabelTool,
     PaletteTool,
@@ -260,9 +261,16 @@ class Ui_PluginDialog(object):
 
         self.ToolsLayout.addWidget(self.wLabelTool)
 
-        self.sToolsMid = QSpacerItem(80, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.sp1 = QSpacerItem(30, 20, QSizePolicy.Fixed, QSizePolicy.Minimum)
+        self.ToolsLayout.addItem(self.sp1)
 
-        self.ToolsLayout.addItem(self.sToolsMid)
+        self.vl = QFrame()
+        self.vl.setFrameShape(QFrame.VLine)
+        self.vl.setFrameShadow(QFrame.Sunken)
+        self.ToolsLayout.addWidget(self.vl)
+
+        self.sp2 = QSpacerItem(20, 20, QSizePolicy.Fixed, QSizePolicy.Minimum)
+        self.ToolsLayout.addItem(self.sp2)
 
         self.wColorTool = PaletteTool(
             u"PaletteTool",
@@ -277,6 +285,11 @@ class Ui_PluginDialog(object):
 
         self.ToolsLayout.addWidget(self.wColorTool)
 
+        self.sToolsMid = QSpacerItem(80, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.ToolsLayout.addItem(self.sToolsMid)
+
+        self.ConfigTool = ConfigTool(env=self.env_desc)
+        self.ToolsLayout.addWidget(self.ConfigTool)
         self.sToolsEnd = QSpacerItem(10, 20, QSizePolicy.Fixed, QSizePolicy.Minimum)
 
         self.ToolsLayout.addItem(self.sToolsEnd)

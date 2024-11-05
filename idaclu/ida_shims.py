@@ -45,6 +45,10 @@ try:
 except ImportError:
     ida_search = None
     
+try:
+    import ida_ida
+except ImportError:
+    ida_ida = None
 
 
 def _get_fn_by_version(lib, curr_fn, archive_fn, archive_lib=None):
@@ -1058,3 +1062,10 @@ def calc_func_size(func_desc):
                 return end_addr - beg_addr
             else:
                 return 0
+
+def inf_get_cc_id():
+    if idaapi.IDA_SDK_VERSION >= 900:
+        return ida_ida.inf_get_cc_id()
+    else:
+        inf = idaapi.get_inf_structure()
+        return inf.cc.id

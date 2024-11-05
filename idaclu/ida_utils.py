@@ -514,8 +514,7 @@ def get_ptr(addr):
     return [idaapi.get_32bit, idaapi.get_64bit][is_arch64()](addr)
 
 def is_GCC_auto():
-    inf = idaapi.get_inf_structure()
-    if idaapi.get_compiler_name(inf.cc.id) == 'GNU C++':
+    if get_compiler_name() == 'GNU C++':
         return True
     return False
 
@@ -546,3 +545,7 @@ def is_vtable(addr):
 
 def has_xref(addr):
     return ida_shims.has_xref(ida_shims.get_full_flags(addr))
+
+def get_compiler_name():
+    inf_cc_id = ida_shims.inf_get_cc_id()
+    return idaapi.get_compiler_name(inf_cc_id)

@@ -901,7 +901,7 @@ class ConfigTool(QWidget):
     def __init__(self, parent=None, env=None):
         QWidget.__init__(self, parent=parent)
         self.env = env
-        self.is_save = True
+        self.is_save = False
         layout = self.genLayout()
         self.setLayout(layout)
         self.setMinimumSize(QSize(32, 30))

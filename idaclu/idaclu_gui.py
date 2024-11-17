@@ -220,12 +220,17 @@ class IdaCluDialog(QWidget):
             script_view = getattr(module, 'SCRIPT_VIEW', 'table')
             script_args = getattr(module, 'SCRIPT_ARGS', [])
 
+            if not script_type in ['func', 'custom']:
+                ida_shims.msg('ERROR: Unknown plugin type')
+                return
+
             directory = os.path.dirname(self.env_desc.idb_path)
             json_filename = "{}_idaclu_{}.json".format(self.env_desc.ida_module, script_name.lower().replace(' ', '_'))
             cs_cache_file = os.path.join(directory, json_filename)
 
             cs_data = None
             is_pre_filter = script_type == 'func'
+            func_filter = self.updatePbFunc if is_pre_filter else self.updatePb
 
             if self.ui.ConfigTool.is_save and os.path.isfile(cs_cache_file):
                 with open(cs_cache_file, "r") as json_file:
@@ -278,22 +283,11 @@ class IdaCluDialog(QWidget):
 
                 get_cs_data = getattr(module, 'get_data')
 
-                is_pre_filter = False
-                if script_type == 'func':
-                    gen = InstrumentedCallback(self.sample_generator)
-                    get_cs_data(gen, self.env_desc, plug_params)
-                    phase_count = gen.get_call_count()
-                    gen = InstrumentedCallback(self.updatePbFunc, phase_count)
-                    cs_data = get_cs_data(gen, self.env_desc, plug_params)  # pre-filter
-                elif script_type == 'custom':
-                    gen = InstrumentedCallback(self.sample_generator)
-                    get_cs_data(gen, self.env_desc, plug_params)
-                    phase_count = gen.get_call_count()
-                    gen = InstrumentedCallback(self.updatePb, phase_count)
-                    cs_data = get_cs_data(gen, self.env_desc, plug_params)  # post-filter
-                else:
-                    ida_shims.msg('ERROR: Unknown plugin type')
-                    return
+                gen = InstrumentedCallback(self.sample_generator)
+                get_cs_data(gen, self.env_desc, plug_params)
+                phase_count = gen.get_call_count()
+                gen = InstrumentedCallback(func_filter, phase_count)
+                cs_data = get_cs_data(gen, self.env_desc, plug_params)
 
                 if self.ui.ConfigTool.is_save:
                     with open(cs_cache_file, "w") as json_file:
@@ -305,7 +299,7 @@ class IdaCluDialog(QWidget):
             cs_func_count = sum(len(band_fns) for band_fns in cs_data.values())
             cs_func_idx = 0
 
-            if is_pre_filter == False:
+            if (self.ui.ConfigTool.is_save or is_pre_filter == False):
                 self.sel_dirs = self.ui.wFolderFilter.getData()
                 self.sel_prfx = self.ui.wPrefixFilter.getData()
                 self.sel_colr = self.ui.wColorFilter.getData()
@@ -326,8 +320,8 @@ class IdaCluDialog(QWidget):
                         func_addr = int(hook_val[0])  # long in IDA v6.x;
                         func_cmnt = str(hook_val[1])  # just in case
 
-                        if is_pre_filter == False and self.isFuncRelevant(func_addr) == False:
-                            continue
+                    if (self.ui.ConfigTool.is_save or is_pre_filter == False) and self.isFuncRelevant(func_addr) == False:
+                        continue
 
                     # Getting function info from function "hook".
                     func_inst = idaapi.get_func(func_addr)

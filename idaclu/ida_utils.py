@@ -4,6 +4,7 @@ import re
 import idc
 import idaapi
 import idautils
+import ida_hexrays
 
 # new backward-incompatible modules
 try:
@@ -549,3 +550,287 @@ def has_xref(addr):
 def get_compiler_name():
     inf_cc_id = ida_shims.inf_get_cc_id()
     return idaapi.get_compiler_name(inf_cc_id)
+
+def get_func_params(func_addr):
+    params = []
+    tif = idaapi.tinfo_t()
+    if idaapi.get_tinfo(tif, func_addr):
+        func_type_data = idaapi.func_type_data_t()
+        if tif.get_func_details(func_type_data):
+            for i, arg in enumerate(func_type_data):
+                arg_name = arg.name if arg.name else 'a{}'.format(i+1)
+                params.append({
+                    "name": arg_name,
+                    "type": arg.type.dstr()
+                })
+    return params
+
+def check_type(type_name, type_list):
+    for t in type_list:
+        if type_name == t or f' {t}' in type_name or f'{t} ' in type_name:
+            return True
+    return False
+
+def is_std_type(type_name):
+    TYPES = [
+        'void',
+        'bool',
+        'int',
+        'short',
+        'long',
+        'float',
+        'double',
+        'char',
+        'char16_t',
+        'char32_t',
+        'wchar_t',
+        '__int8',
+        '__int16',
+        '__int32',
+        '__int64',
+        '__int128',
+        '__m64',
+        '__m128',
+        '__m128d',
+        '__m128i',
+        'size_t',
+        'FILE'
+    ]
+    return check_type(type_name, TYPES)
+
+def is_win_type(type_name):
+    TYPES = [
+        'APIENTRY',
+        'ATOM',
+        'BOOL',
+        'BOOLEAN',
+        'BYTE',
+        'CALLBACK',
+        'CCHAR',
+        'CHAR',
+        'COLORREF',
+        'CONST',
+        'DWORD',
+        'DWORDLONG',
+        'DWORD_PTR',
+        'DWORD32',
+        'DWORD64',
+        'FLOAT',
+        'HACCEL',
+        'HALF_PTR',
+        'HANDLE',
+        'HBITMAP',
+        'HBRUSH',
+        'HCOLORSPACE',
+        'HCONV',
+        'HCONVLIST',
+        'HCURSOR',
+        'HDC',
+        'HDDEDATA',
+        'HDESK',
+        'HDROP',
+        'HDWP',
+        'HENHMETAFILE',
+        'HFILE',
+        'HFONT',
+        'HGDIOBJ',
+        'HGLOBAL',
+        'HHOOK',
+        'HICON',
+        'HINSTANCE',
+        'HKEY',
+        'HKL',
+        'HLOCAL',
+        'HMENU',
+        'HMETAFILE',
+        'HMODULE',
+        'HMONITOR',
+        'HPALETTE',
+        'HPEN',
+        'HRESULT',
+        'HRGN',
+        'HRSRC',
+        'HSZ',
+        'HWINSTA',
+        'HWND',
+        'INT',
+        'INT_PTR',
+        'INT8',
+        'INT16',
+        'INT32',
+        'INT64',
+        'LANGID',
+        'LCID',
+        'LCTYPE',
+        'LGRPID',
+        'LONG',
+        'LONGLONG',
+        'LONG_PTR',
+        'LONG32',
+        'LONG64',
+        'LPARAM',
+        'LPBOOL',
+        'LPBYTE',
+        'LPCOLORREF',
+        'LPCSTR',
+        'LPCTSTR',
+        'LPCVOID',
+        'LPCWSTR',
+        'LPDWORD',
+        'LPHANDLE',
+        'LPINT',
+        'LPLONG',
+        'LPSTR',
+        'LPTSTR',
+        'LPVOID',
+        'LPWORD',
+        'LPWSTR',
+        'LRESULT',
+        'PBOOL',
+        'PBOOLEAN',
+        'PBYTE',
+        'PCHAR',
+        'PCSTR',
+        'PCTSTR',
+        'PCWSTR',
+        'PDWORD',
+        'PDWORDLONG',
+        'PDWORD_PTR',
+        'PDWORD32',
+        'PDWORD64',
+        'PFLOAT',
+        'PHALF_PTR',
+        'PHANDLE',
+        'PHKEY',
+        'PINT',
+        'PINT_PTR',
+        'PINT8',
+        'PINT16',
+        'PINT32',
+        'PINT64',
+        'PLCID',
+        'PLONG',
+        'PLONGLONG',
+        'PLONG_PTR',
+        'PLONG32',
+        'PLONG64',
+        'POINTER_32',
+        'POINTER_64',
+        'POINTER_SIGNED',
+        'POINTER_UNSIGNED',
+        'PSHORT',
+        'PSIZE_T',
+        'PSSIZE_T',
+        'PSTR',
+        'PTBYTE',
+        'PTCHAR',
+        'PTSTR',
+        'PUCHAR',
+        'PUHALF_PTR',
+        'PUINT',
+        'PUINT_PTR',
+        'PUINT8',
+        'PUINT16',
+        'PUINT32',
+        'PUINT64',
+        'PULONG',
+        'PULONGLONG',
+        'PULONG_PTR',
+        'PULONG32',
+        'PULONG64',
+        'PUSHORT',
+        'PVOID',
+        'PWCHAR',
+        'PWORD',
+        'PWSTR',
+        'QWORD',
+        'SC_HANDLE',
+        'SC_LOCK',
+        'SERVICE_STATUS_HANDLE',
+        'SHORT',
+        'SIZE_T',
+        'SSIZE_T',
+        'TBYTE',
+        'TCHAR',
+        'UCHAR',
+        'UHALF_PTR',
+        'UINT',
+        'UINT_PTR',
+        'UINT8',
+        'UINT16',
+        'UINT32',
+        'UINT64',
+        'ULONG',
+        'ULONGLONG',
+        'ULONG_PTR',
+        'ULONG32',
+        'ULONG64',
+        'UNICODE_STRING',
+        'USHORT',
+        'USN',
+        'VOID',
+        'WCHAR',
+        'WINAPI',
+        'WORD',
+        'WPARAM'
+    ]
+    return check_type(type_name, TYPES)
+
+def is_unk_type(type_name):
+    # Example: `const #1641 *`
+    return '#' in type_name
+
+def get_dt_type(type_name):
+    if is_std_type(type_name):
+        return "std"
+    elif is_win_type(type_name):
+        return "win"
+    elif is_unk_type(type_name):
+        return "unk"
+    else:
+        return "usr"
+
+def extract_calls_from_decompiled(func_ea):
+    # Get statistics on calls originating from a single function.
+    cfunc = ida_hexrays.decompile(func_ea)
+    if not cfunc:
+        return {}
+
+    class CallVisitor(ida_hexrays.ctree_visitor_t):
+        def __init__(self, cfunc):
+            ida_hexrays.ctree_visitor_t.__init__(self, ida_hexrays.CV_FAST)
+            self.calls = collections.defaultdict(dict)
+            self.cfunc = cfunc
+
+        def visit_expr(self, expr):
+            # called by `apply_to()`
+            if expr.op == ida_hexrays.cot_call:
+                try:
+                    callee_addr = expr.x.obj_ea
+                except Exception:
+                    callee_addr = -1
+
+                args = []
+
+                for arg in expr.a:
+                    try:
+                        arg_type = arg.type.dstr() if arg.type else "<unknown>"
+                        arg_name = arg.print1(self.cfunc)
+                    except Exception:
+                        arg_type = "<unknown>"
+                        arg_name = "<unknown>"
+
+                    args.append({
+                        "name": idaapi.tag_remove(arg_name),
+                        "type": arg_type
+                    })
+
+                # The same function can be called from different locations within the given function, 
+                # each with a unique set of parameters.
+                self.calls[callee_addr][expr.ea] = args
+            return 0
+
+    visitor = CallVisitor(cfunc)
+    visitor.apply_to(cfunc.body, None)
+
+    return dict(visitor.calls)

@@ -15,7 +15,7 @@ import drcov
 SCRIPT_NAME = i18n('Covered Functions')
 SCRIPT_TYPE = 'func'
 SCRIPT_VIEW = 'tree'
-SCRIPT_ARGS = [('filePath', 'file_path', 'input the file path')]
+SCRIPT_ARGS = [('textedit', 'file_path', ['input the file path'])]
 
 
 def find_function(block_start, function_ranges):
@@ -47,7 +47,7 @@ def get_data(func_gen=None, env_desc=None, plug_params=None):
         unseen_functions.append(func_addr)
 
     x = None
-    file_path = plug_params['file_path']
+    file_path = plug_params['file_path'][0]
     try:
         x = drcov.DrcovData(file_path)
     except IOError:

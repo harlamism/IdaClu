@@ -205,6 +205,14 @@ def get_QLabel():
         import PyQt5.QtWidgets as QtWidgets
         return QtWidgets.QLabel
 
+def get_QListView():
+    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
+        import PySide.QtGui as QtGui
+        return QtGui.QListView
+    else:
+        import PyQt5.QtWidgets as QtWidgets
+        return QtWidgets.QListView
+
 def get_QLineEdit():
     if is_ida and idaapi.IDA_SDK_VERSION <= 680:
         import PySide.QtGui as QtGui
@@ -381,6 +389,14 @@ def get_QStandardItem():
     else:
         import PyQt5.QtGui as QtGui
         return QtGui.QStandardItem
+
+def get_QStandardItemModel():
+    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
+        import PySide.QtGui as QtGui
+        return QtGui.QStandardItemModel
+    else:
+        import PyQt5.QtGui as QtGui
+        return QtGui.QStandardItemModel    
 
 def get_QStringListModel():
     if is_ida and idaapi.IDA_SDK_VERSION <= 680:
@@ -583,6 +599,7 @@ QHBoxLayout = get_QHBoxLayout()
 QIcon = get_QIcon()
 QImage = get_QImage()
 QLabel = get_QLabel()
+QListView = get_QListView()
 QLineEdit = get_QLineEdit()
 QMainWindow = get_QMainWindow()
 QMenu = get_QMenu()
@@ -605,6 +622,7 @@ QSlider = get_QSlider()
 QSpacerItem = get_QSpacerItem()
 QSplitter = get_QSplitter()
 QStandardItem = get_QStandardItem()
+QStandardItemModel = get_QStandardItemModel()
 QStringListModel = get_QStringListModel()
 QStyle = get_QStyle()
 QStyledItemDelegate = get_QStyledItemDelegate()

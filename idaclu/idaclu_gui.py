@@ -18,11 +18,14 @@ from idaclu.qt_shims import (
     QFrame,
     QIcon,
     QLineEdit,
+    QListView,
     QMenu,
     QPushButton,
     QSize,
     QSizePolicy,
     QSpacerItem,
+    QStandardItem,
+    QStandardItemModel,
     QStyledItemDelegate,
     QVBoxLayout,
     QWidget
@@ -199,6 +202,15 @@ class IdaCluDialog(QWidget):
         if False:
             yield
 
+    def has_parent_widget(self, sender_button, dropdown_class):
+        parent_widget = sender_button.parent()
+        for i in range(parent_widget.layout().count()):
+            sub_item = parent_widget.layout().itemAt(i)
+            sub_widget = sub_item.widget()
+            if sub_widget and (isinstance(sub_widget, dropdown_class)):
+                return True
+        return False
+
     def get_plugin_data(self):
         self.ui.rvTable.setModelProxy(ResultModel(self.ui.rvTable.heads, [], self.env_desc))
 
@@ -250,18 +262,32 @@ class IdaCluDialog(QWidget):
                             sub_item = parent_layout.itemAt(i)
                             if sub_item:
                                 sub_widget = sub_item.widget()
-                                if sub_widget and (isinstance(sub_widget, QLineEdit)):
+                                if sub_widget and type(sub_widget) == QFrame:
                                     param_name = sub_widget.objectName().replace("{}__".format(full_spec_name), "")
-                                    plug_params[param_name] = sub_widget.text()  # .toPlainText()
+                                    states = []
+                                    for i in range(sub_widget.layout().count()):
+                                        widget = sub_widget.layout().itemAt(i).widget()
+                                        if isinstance(widget, QLineEdit):
+                                            states.append(widget.text())  # .toPlainText()
+                                    plug_params[param_name] = states
+                                if sub_widget and type(sub_widget) == QListView:
+                                    param_name = sub_widget.objectName().replace("{}__".format(full_spec_name), "")
+                                    states = []
+                                    for row in range(sub_widget.model().rowCount()):
+                                        item = sub_widget.model().item(row)
+                                        text = item.text()
+                                        checked = item.checkState() == Qt.Checked
+                                        states.append((text, checked))
+                                    plug_params[param_name] = states
 
                     for i in range(parent_layout.count()):
                         sub_item = parent_layout.itemAt(i)
                         if sub_item:
-                            if isinstance(sub_item, QSpacerItem):
-                                parent_layout.removeItem(sub_item)
-                                continue
+                            # if isinstance(sub_item, QSpacerItem):
+                            #     parent_layout.removeItem(sub_item)
+                            #     continue
                             sub_widget = sub_item.widget()
-                            if sub_widget and (isinstance(sub_widget, QLineEdit)):
+                            if sub_widget and type(sub_widget) in [QFrame, QListView]:
                                 parent_layout.removeWidget(sub_widget)
                                 sub_widget.setParent(None)
 
@@ -270,14 +296,35 @@ class IdaCluDialog(QWidget):
                 elif self.option_sender == None and len(script_args) > 0:
                     parent_widget = sender_button.parent()
                     if parent_widget:
-                        for i, (ctrl_name, var_name, ctrl_ph) in enumerate(script_args):
-                            text_edit = QLineEdit()
-                            text_edit.setPlaceholderText(ctrl_ph)
-                            text_edit.setMaximumSize(QSize(16777215, 30))
-                            parent_widget.layout().addWidget(text_edit)
-                            text_edit.setObjectName("{}__{}".format(full_spec_name, var_name))
-                        spacer = QSpacerItem(20, 30, QSizePolicy.Fixed, QSizePolicy.MinimumExpanding)
-                        parent_widget.layout().addStretch(1)
+                        for i, (ctrl_name, var_name, ctrl_ctx) in enumerate(script_args):
+                            if ctrl_name == "textedit":
+                                if not self.has_parent_widget(sender_button, QFrame):
+                                    content_widget = QFrame()
+                                    vbox = QVBoxLayout(content_widget)
+                                    parent_widget.layout().addWidget(content_widget)
+                                    content_widget.setMaximumSize(QSize(16777215, 60))
+                                    content_widget.setObjectName("{}__{}".format(full_spec_name, var_name))
+                                    for text in ctrl_ctx:
+                                        text_edit = QLineEdit()
+                                        text_edit.setPlaceholderText(text)
+                                        vbox.addWidget(text_edit)
+                            if ctrl_name == "checkbox":
+                                if not self.has_parent_widget(sender_button, QListView):
+                                    list_view = QListView()
+                                    parent_widget.layout().addWidget(list_view)
+                                    parent_widget.setMaximumSize(QSize(16777215, 160))
+                                    model = QStandardItemModel()
+                                    list_view.setModel(model)
+                                    list_view.setObjectName("{}__{}".format(full_spec_name, var_name))
+
+                                    for text in ctrl_ctx:
+                                        item = QStandardItem(text)
+                                        item.setCheckable(True)
+                                        item.setCheckState(False)  # Unchecked
+                                        model.appendRow(item)
+
+                        # spacer = QSpacerItem(20, 30, QSizePolicy.Fixed, QSizePolicy.MinimumExpanding)
+                        # parent_widget.layout().addStretch(1)
                         self.option_sender = full_spec_name
                         return
 

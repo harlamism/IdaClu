@@ -13,7 +13,16 @@ from idaclu.qt_utils import i18n
 SCRIPT_NAME = i18n('Function Argument Types')
 SCRIPT_TYPE = 'func'
 SCRIPT_VIEW = 'tree'
-SCRIPT_ARGS = [('checkbox', 'data_types', ['C Fundamental Types', 'Windows Data Types', 'Custom Data Types', 'Missing Data Types'])]
+SCRIPT_ARGS = [(
+    'checkbox', 'data_types',
+    [
+        'C Fundamental Types',
+        'Windows Data Types',
+        'DirectX Data Types',
+        'Custom Data Types',
+        'Missing Data Types'
+    ]
+)]
 
 
 def order_item_len(input_dict):
@@ -35,8 +44,9 @@ def get_data(func_gen=None, env_desc=None, plug_params=None):
 
     is_std_add = plug_params['data_types'][0][1]
     is_win_add = plug_params['data_types'][1][1]
-    is_usr_add = plug_params['data_types'][2][1]
-    is_unk_add = plug_params['data_types'][3][1]
+    is_ddx_add = plug_params['data_types'][2][1]
+    is_usr_add = plug_params['data_types'][3][1]
+    is_unk_add = plug_params['data_types'][4][1]
 
     for func_addr in func_gen():
         p_list = []
@@ -52,6 +62,7 @@ def get_data(func_gen=None, env_desc=None, plug_params=None):
 
             if ((is_std_add and dt_type == 'std')
                 or (is_win_add and dt_type == 'win')
+                or (is_ddx_add and dt_type == 'ddx')
                 or (is_unk_add and dt_type == 'unk')
                 or (is_usr_add and dt_type == 'usr')
                ):

@@ -57,7 +57,6 @@ class LabelTool(QWidget):
         ]
         font = QFont()
         font.setBold(True)
-        font.setWeight(75)
         self.font = font
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -343,7 +342,6 @@ class FilterInputGroup(QWidget):
     def initText(self, name, parent=None):
         font = QFont()
         font.setBold(True)
-        font.setWeight(75)
 
         label = QPushButton(parent)
         label.setText(name.upper())

@@ -25,10 +25,32 @@ except ImportError:
 
 # make sub-plugins discoverable
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-for i, path in enumerate(sys.path):
-    if "IDA" in path and os.path.basename(path) == 'plugins':
-        sys.path.insert(i, SCRIPT_DIR)
-        break
+
+
+def claim_pkg_path():
+    # IDA keeps its plugin directories on sys.path, so anything named 'idaclu'
+    # sitting in one of them - a repo checkout, a symlink to one, an older
+    # copy, a stale entry point - can win the import race against the package
+    # shipped next to this file; the entry point is the only reliable anchor
+    pkg_dir = os.path.realpath(os.path.join(SCRIPT_DIR, 'idaclu'))
+    while SCRIPT_DIR in sys.path:
+        sys.path.remove(SCRIPT_DIR)
+    sys.path.insert(0, SCRIPT_DIR)
+
+    pkg = sys.modules.get('idaclu')
+    if pkg is None:
+        return
+    # namespace packages resolve without a '__file__' at all
+    pkg_file = getattr(pkg, '__file__', None)
+    is_bundled = (pkg_file is not None and
+        os.path.dirname(os.path.realpath(pkg_file)) == pkg_dir)
+    if not is_bundled:
+        # a foreign 'idaclu' got imported first - drop it and its submodules
+        for mod in [m for m in sys.modules if m == 'idaclu' or m.startswith('idaclu.')]:
+            del sys.modules[mod]
+
+
+claim_pkg_path()
 
 
 is_ida = True
@@ -128,17 +150,16 @@ class ScriptEnv():
         return mode
 
     def get_plugin_ort(self):
-        plg_dst = None
+        # sub-plugins live in the package next to the entry point, so the
+        # folder IDA loads the plugin from can be named anything
+        plg_src = SCRIPT_DIR
+        plg_dst = os.path.dirname(os.path.abspath(__file__))
         plg_scope = 'None'
-        g_plg_path = os.path.join(self.dir_plugin[0], 'idaclu')
-        l_plg_path = os.path.join(self.dir_plugin[1], 'idaclu')
-        if os.path.isdir(g_plg_path):
-            plg_dst = self.dir_plugin[0]
-            plg_scope = 'global'
-        elif os.path.isdir(l_plg_path):
-            plg_dst = self.dir_plugin[1]
-            plg_scope = 'local'
-        plg_src = os.path.dirname(os.path.realpath(os.path.join(plg_dst, 'idaclu')))
+        # get_ida_subdirs() lists the user directory before the install one
+        for scope, plg_dir in zip(['local', 'global'], self.dir_plugin):
+            if plg_dst == plg_dir or plg_dst.startswith(plg_dir + os.sep):
+                plg_scope = scope
+                break
         plg_type = 'copy' if plg_dst == plg_src else 'link'
         return (plg_dst, plg_src, plg_scope, plg_type)
 
@@ -208,7 +229,7 @@ class IdaCluForm(PluginForm):
 
         app = QCoreApplication
         translator = QTranslator()
-        translator.load('idaclu/assets/i18n/tr_cn', os.path.dirname(__file__))
+        translator.load('idaclu/assets/i18n/tr_cn', SCRIPT_DIR)
         app.installTranslator(translator)
 
         if self.env_desc.lib_qt == 'pyqt5':

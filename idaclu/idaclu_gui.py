@@ -253,6 +253,11 @@ class IdaCluDialog(QWidget):
                     os.remove(cs_cache_file)
 
                 plug_params = {}
+                # Whether the controls currently on screen belong to the script
+                # being launched. If they belong to a different one, its values
+                # are useless here and this click has to become a first click,
+                # otherwise the script runs with no arguments at all.
+                is_own_input = self.option_sender == full_spec_name
                 if self.option_sender != None:
                     widget = self.ui.ScriptsArea.findChild(QPushButton, self.option_sender)
                     parent_layout = widget.parent().layout()
@@ -293,7 +298,7 @@ class IdaCluDialog(QWidget):
 
                     self.option_sender = None
 
-                elif self.option_sender == None and len(script_args) > 0:
+                if not is_own_input and len(script_args) > 0:
                     parent_widget = sender_button.parent()
                     if parent_widget:
                         for i, (ctrl_name, var_name, ctrl_ctx) in enumerate(script_args):
@@ -806,7 +811,9 @@ class IdaCluDialog(QWidget):
                             try:
                                 with open(os.path.join(sp_path, spg_ref, sp_fname), 'r') as file:
                                     for line in file:
-                                        match = re.search(r'SCRIPT_NAME\s*=\s*["\']([^"\']+)', line)
+                                        # the name is often wrapped in i18n(),
+                                        # which the plain quote match misses
+                                        match = re.search(r'SCRIPT_NAME\s*=\s*(?:i18n\s*\(\s*)?["\']([^"\']+)', line)
                                         if match:
                                             sp_name = match.group(1)
                                             # self.log.debug("Recovered SCRIPT_NAME:", sp_name)

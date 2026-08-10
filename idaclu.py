@@ -98,15 +98,20 @@ class ScriptEnv():
         return "\n".join(env_repr)
 
     def get_banner(self):
-        banner = "                                      \n" \
-               + "     ____    __      ________         \n" \
-               + "    /  _/___/ /___ _/ ____/ /_  __    \n" \
-               + "    / // __  / __ `/ /   / / / / /    \n" \
-               + "  _/ // /_/ / /_/ / /___/ / /_/ /     \n" \
-               + " /___/\__,_/\__,_/\____/_/\__,_/      \n" \
-               + "         by Sergejs Harlamovs         \n" \
-               + "                                      \n"
-        return banner
+        # the art stays raw so its backslashes are literal and Python 3.12+
+        # does not warn about invalid escape sequences; the line breaks come
+        # from the join, since '\n' inside a raw string is two characters
+        art = [
+            r"                                      ",
+            r"     ____    __      ________         ",
+            r"    /  _/___/ /___ _/ ____/ /_  __    ",
+            r"    / // __  / __ `/ /   / / / / /    ",
+            r"  _/ // /_/ / /_/ / /___/ / /_/ /     ",
+            r" /___/\__,_/\__,_/\____/_/\__,_/      ",
+            r"         by Sergejs Harlamovs         ",
+            r"                                      ",
+        ]
+        return "\n".join(art) + "\n"
 
     def get_script_mode(self):  # in case of certainty of IDA environment
         mode = 'script'

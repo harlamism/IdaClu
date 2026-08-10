@@ -320,7 +320,8 @@ class IdaCluDialog(QWidget):
                                     for text in ctrl_ctx:
                                         item = QStandardItem(text)
                                         item.setCheckable(True)
-                                        item.setCheckState(False)  # Unchecked
+                                        # Qt6 takes a Qt.CheckState here, not a bool
+                                        item.setCheckState(Qt.Unchecked)
                                         model.appendRow(item)
 
                         # spacer = QSpacerItem(20, 30, QSizePolicy.Fixed, QSizePolicy.MinimumExpanding)

@@ -1,0 +1,78 @@
+{
+    "$schema": "https://hcli.docs.hex-rays.com/schemas/ida-plugin.json",
+    "IDAMetadataDescriptorVersion": 1,
+    "plugin": {
+        "name": "IdaClu",
+        "entryPoint": "idaclu.py",
+        "version": "1.1.0",
+        "description": "Tree-view GUI and script harness for IDAPython: cluster functions by similarity, xrefs, constants and control flow, then label the groups in bulk with prefixes, folders and colors.",
+        "categories": [
+            "collaboration-and-productivity",
+            "ui-ux-and-visualization",
+            "api-scripting-and-automation"
+        ],
+        "keywords": [
+            "function-clustering",
+            "bulk-renaming",
+            "prefixes",
+            "folders",
+            "function-coloring",
+            "xref-analysis",
+            "control-flow-analysis",
+            "code-coverage",
+            "function-similarity",
+            "ssdeep",
+            "tlsh",
+            "idapython",
+            "triage"
+        ],
+        "license": "MIT",
+        "logoPath": "img/shot.png",
+        "idaVersions": [
+            "6.7",
+            "6.8",
+            "6.9",
+            "6.95",
+            "7.0",
+            "7.0sp1",
+            "7.1",
+            "7.2",
+            "7.3",
+            "7.4",
+            "7.4sp1",
+            "7.5",
+            "7.5sp1",
+            "7.5sp2",
+            "7.5sp3",
+            "7.6",
+            "7.6sp1",
+            "7.7",
+            "7.7sp1",
+            "8.0",
+            "8.0sp1",
+            "8.1",
+            "8.2",
+            "8.2sp1",
+            "8.3",
+            "8.4",
+            "8.4sp1",
+            "8.4sp2",
+            "8.5",
+            "9.0",
+            "9.0sp1",
+            "9.1",
+            "9.2",
+            "9.3",
+            "9.4"
+        ],
+        "urls": {
+            "repository": "https://github.com/harlamism/IdaClu"
+        },
+        "authors": [
+            {
+                "name": "Sergejs 'HRLM' Harlamovs",
+                "email": "33154977+harlamism@users.noreply.github.com"
+            }
+        ]
+    }
+}

@@ -1,9 +1,24 @@
-# Shim file to support PySide v1.x and PyQt v5.x
+# Shim file to support PySide v1.x (Qt4), PyQt v5.x (Qt5) and PySide v6.x (Qt6)
 # Documentation provided by Qt and Riverbank Computing Ltd.:
 #  - https://srinikom.github.io/pyside-docs/
 #  - https://doc.qt.io/qtforpython-5/
+#  - https://doc.qt.io/qtforpython-6/
 # Inspired by the gist of Willi Ballenthin:
 #  - https://gist.github.com/williballenthin/277eedca569043ef0984
+#
+# Binding resolution order:
+#  1. PySide6 (Qt6)  - IDA 9.2 and newer
+#  2. PyQt5   (Qt5)  - IDA 6.9 through 9.1
+#  3. PySide  (Qt4)  - IDA 6.8 and older
+#
+# The old IDA <= 6.8 check is kept exactly as before, since PySide (Qt4)
+# is only ever expected there. For every newer IDA, PySide6 is tried
+# first and PyQt5 is used as a fallback whenever PySide6 cannot be
+# imported (missing package, or the "GUI version of IDA only" guard
+# that IDA's bundled PySide6 raises as an ImportError outside idaq).
+
+
+import importlib
 
 
 is_ida = True
@@ -13,565 +28,172 @@ except ImportError:
     is_ida = False
 
 
-def get_DescendingOrder():
+BINDING_PYSIDE6 = 'pyside6'  # Qt6
+BINDING_PYQT5 = 'pyqt5'      # Qt5
+BINDING_PYSIDE = 'pyside'    # Qt4
+
+_PACKAGE_NAMES = {
+    BINDING_PYSIDE6: 'PySide6',
+    BINDING_PYQT5: 'PyQt5',
+    BINDING_PYSIDE: 'PySide',
+}
+
+
+def _detect_binding():
     if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtCore as QtCore
+        return BINDING_PYSIDE
+    try:
+        import PySide6
+        return BINDING_PYSIDE6
+    except ImportError:
+        return BINDING_PYQT5
+
+
+_BINDING = _detect_binding()
+
+# Public name of the binding actually in use: 'pyside6', 'pyqt5' or 'pyside'.
+# Consumers must read this rather than guess from IDA_SDK_VERSION, which says
+# nothing about which Qt is loaded - IDA 9.2+ ships Qt6 regardless.
+BINDING = _BINDING
+
+
+def _qt_module(submodule_name):
+    package_name = _PACKAGE_NAMES[_BINDING]
+    return importlib.import_module(package_name + '.' + submodule_name)
+
+
+# Table of every exported class/name that lives at a fixed spot inside
+# QtCore/QtGui/QtWidgets, keyed by name, with a (qt4_module, qt5_module)
+# pair as the value. PySide6 (Qt6) reuses the qt5_module column unless
+# the name shows up in _QT6_MODULE_OVERRIDES below.
+_CLASS_MODULES = {
+    'QAbstractItemModel':    ('QtCore', 'QtCore'),
+    'QAbstractItemView':     ('QtGui', 'QtWidgets'),
+    'QAction':               ('QtGui', 'QtWidgets'),
+    'QApplication':          ('QtGui', 'QtWidgets'),
+    'QBrush':                ('QtGui', 'QtGui'),
+    'QByteArray':            ('QtCore', 'QtCore'),
+    'QCheckBox':             ('QtGui', 'QtWidgets'),
+    'QColor':                ('QtGui', 'QtGui'),
+    'QComboBox':             ('QtGui', 'QtWidgets'),
+    'QCompleter':            ('QtGui', 'QtWidgets'),
+    'QCoreApplication':      ('QtCore', 'QtCore'),
+    'QCursor':               ('QtGui', 'QtGui'),
+    'QDialog':               ('QtGui', 'QtWidgets'),
+    'QEvent':                ('QtCore', 'QtCore'),
+    'QFont':                 ('QtGui', 'QtGui'),
+    'QFrame':                ('QtGui', 'QtWidgets'),
+    'QGroupBox':             ('QtGui', 'QtWidgets'),
+    'QHeaderView':           ('QtGui', 'QtWidgets'),
+    'QHBoxLayout':           ('QtGui', 'QtWidgets'),
+    'QIcon':                 ('QtGui', 'QtGui'),
+    'QImage':                ('QtGui', 'QtGui'),
+    'QLabel':                ('QtGui', 'QtWidgets'),
+    'QListView':             ('QtGui', 'QtWidgets'),
+    'QLineEdit':             ('QtGui', 'QtWidgets'),
+    'QMainWindow':           ('QtGui', 'QtWidgets'),
+    'QMenu':                 ('QtGui', 'QtWidgets'),
+    'QMessageBox':           ('QtGui', 'QtWidgets'),
+    'QMetaObject':           ('QtCore', 'QtCore'),
+    'QModelIndex':           ('QtCore', 'QtCore'),
+    'QPainter':              ('QtGui', 'QtGui'),
+    'QPixmap':               ('QtGui', 'QtGui'),
+    'QPoint':                ('QtCore', 'QtCore'),
+    'QPointF':               ('QtCore', 'QtCore'),
+    'QPolygonF':             ('QtGui', 'QtGui'),
+    'QProgressBar':          ('QtGui', 'QtWidgets'),
+    'QPushButton':           ('QtGui', 'QtWidgets'),
+    'QRadioButton':          ('QtGui', 'QtWidgets'),
+    'QRect':                 ('QtCore', 'QtCore'),
+    'QScrollArea':           ('QtGui', 'QtWidgets'),
+    'QSize':                 ('QtCore', 'QtCore'),
+    'QSizePolicy':           ('QtGui', 'QtWidgets'),
+    'QSortFilterProxyModel': ('QtGui', 'QtCore'),
+    'QSlider':               ('QtGui', 'QtWidgets'),
+    'QSpacerItem':           ('QtGui', 'QtWidgets'),
+    'QSplitter':             ('QtGui', 'QtWidgets'),
+    'QStandardItem':         ('QtGui', 'QtGui'),
+    'QStandardItemModel':    ('QtGui', 'QtGui'),
+    'QStringListModel':      ('QtGui', 'QtCore'),
+    'QStyle':                ('QtGui', 'QtWidgets'),
+    'QStyledItemDelegate':   ('QtGui', 'QtWidgets'),
+    'QStyleFactory':         ('QtGui', 'QtWidgets'),
+    'QStyleOptionComboBox':  ('QtGui', 'QtWidgets'),
+    'QStyleOptionSlider':    ('QtGui', 'QtWidgets'),
+    'Qt':                    ('QtCore', 'QtCore'),
+    'QTableWidget':          ('QtGui', 'QtWidgets'),
+    'QTableWidgetItem':      ('QtGui', 'QtWidgets'),
+    'QTabWidget':            ('QtGui', 'QtWidgets'),
+    'QTextBrowser':          ('QtGui', 'QtWidgets'),
+    'QTextEdit':             ('QtGui', 'QtWidgets'),
+    'QThread':               ('QtCore', 'QtCore'),
+    'QTranslator':           ('QtCore', 'QtCore'),
+    'QTreeView':             ('QtGui', 'QtWidgets'),
+    'QTreeWidget':           ('QtGui', 'QtWidgets'),
+    'QTreeWidgetItem':       ('QtGui', 'QtWidgets'),
+    'QVBoxLayout':           ('QtGui', 'QtWidgets'),
+    'QWidget':               ('QtGui', 'QtWidgets'),
+}
+
+# Names whose Qt6 (PySide6) submodule differs from the qt5_module column
+# in _CLASS_MODULES above. QAction (like QShortcut, which this shim does
+# not export) moved from QtWidgets to QtGui in Qt6.
+_QT6_MODULE_OVERRIDES = {
+    'QAction': 'QtGui',
+}
+
+
+def _class_submodule(name):
+    qt4_module, qt5_module = _CLASS_MODULES[name]
+    if _BINDING == BINDING_PYSIDE:
+        return qt4_module
+    if _BINDING == BINDING_PYSIDE6:
+        return _QT6_MODULE_OVERRIDES.get(name, qt5_module)
+    return qt5_module
+
+
+def _resolve_class(name):
+    submodule_name = _class_submodule(name)
+    module = _qt_module(submodule_name)
+    return getattr(module, name)
+
+
+def _make_class_getter(name):
+    def _getter():
+        return _resolve_class(name)
+    return _getter
+
+
+for _class_name in _CLASS_MODULES:
+    globals()['get_' + _class_name] = _make_class_getter(_class_name)
+del _class_name
+
+
+def get_DescendingOrder():
+    QtCore = _qt_module('QtCore')
+    if _BINDING == BINDING_PYSIDE:
         return QtCore.Qt.SortOrder.DescendingOrder
     else:
-        import PyQt5.QtCore as QtCore
         return QtCore.Qt.DescendingOrder
 
 def get_Signal():
-    if is_ida and is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtCore as QtCore
-        return QtCore.Signal
-    else:
-        import PyQt5.QtCore as QtCore
+    QtCore = _qt_module('QtCore')
+    if _BINDING == BINDING_PYQT5:
         return QtCore.pyqtSignal
-
-def get_QAbstractItemModel():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtCore as QtCore
-        return QtCore.QAbstractItemModel
     else:
-        import PyQt5.QtCore as QtCore
-        return QtCore.QAbstractItemModel
-
-def get_QAbstractItemView():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QAbstractItemView
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QAbstractItemView
-
-def get_QAction():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QAction
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QAction
-
-def get_QApplication():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QApplication
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QApplication
-
-def get_QBrush():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QBrush
-    else:
-        import PyQt5.QtGui as QtGui
-        return QtGui.QBrush
-
-def get_QByteArray():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtCore as QtCore
-        return QtCore.QByteArray
-    else:
-        import PyQt5.QtCore as QtCore
-        return QtCore.QByteArray
-
-def get_QCheckBox():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QCheckBox
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QCheckBox
-
-def get_QColor():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QColor
-    else:
-        import PyQt5.QtGui as QtGui
-        return QtGui.QColor
-
-def get_QComboBox():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QComboBox
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QComboBox
-
-def get_QCompleter():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QCompleter
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QCompleter
-
-def get_QCoreApplication():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtCore as QtCore
-        return QtCore.QCoreApplication
-    else:
-        import PyQt5.QtCore as QtCore
-        return QtCore.QCoreApplication
-
-def get_QCursor():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QCursor
-    else:
-        import PyQt5.QtGui as QtGui
-        return QtGui.QCursor
-
-def get_QDialog():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QDialog
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QDialog
-
-def get_QEvent():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtCore as QtCore
-        return QtCore.QEvent
-    else:
-        import PyQt5.QtCore as QtCore
-        return QtCore.QEvent
-
-def get_QFont():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QFont
-    else:
-        import PyQt5.QtGui as QtGui
-        return QtGui.QFont
-
-def get_QFrame():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QFrame
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QFrame
-
-def get_QGroupBox():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QGroupBox
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QGroupBox
-
-def get_QHeaderView():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QHeaderView
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QHeaderView
-
-def get_QHBoxLayout():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QHBoxLayout
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QHBoxLayout
-
-def get_QIcon():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QIcon
-    else:
-        import PyQt5.QtGui as QtGui
-        return QtGui.QIcon
-
-def get_QImage():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QImage
-    else:
-        import PyQt5.QtGui as QtGui
-        return QtGui.QImage
-
-def get_QLabel():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QLabel
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QLabel
-
-def get_QListView():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QListView
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QListView
-
-def get_QLineEdit():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QLineEdit
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QLineEdit
-
-
-def get_QMainWindow():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QMainWindow
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QMainWindow
-
-def get_QMenu():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QMenu
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QMenu
-
-def get_QMessageBox():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QMessageBox
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QMessageBox
-
-def get_QMetaObject():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtCore as QtCore
-        return QtCore.QMetaObject
-    else:
-        import PyQt5.QtCore as QtCore
-        return QtCore.QMetaObject
-
-def get_QModelIndex():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtCore as QtCore
-        return QtCore.QModelIndex
-    else:
-        import PyQt5.QtCore as QtCore
-        return QtCore.QModelIndex
-
-def get_QPainter():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QPainter
-    else:
-        import PyQt5.QtGui as QtGui
-        return QtGui.QPainter
-
-def get_QPixmap():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QPixmap
-    else:
-        import PyQt5.QtGui as QtGui
-        return QtGui.QPixmap
-
-def get_QPoint():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtCore as QtCore
-        return QtCore.QPoint
-    else:
-        import PyQt5.QtCore as QtCore
-        return QtCore.QPoint
-
-def get_QPointF():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtCore as QtCore
-        return QtCore.QPointF
-    else:
-        import PyQt5.QtCore as QtCore
-        return QtCore.QPointF
-
-def get_QProgressBar():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QProgressBar
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QProgressBar
-
-def get_QPushButton():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QPushButton
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QPushButton
-
-def get_QRadioButton():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QRadioButton
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QRadioButton
-
-def get_QRect():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtCore as QtCore
-        return QtCore.QRect
-    else:
-        import PyQt5.QtCore as QtCore
-        return QtCore.QRect
-
-def get_QScrollArea():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QScrollArea
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QScrollArea
-
-def get_QSize():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtCore as QtCore
-        return QtCore.QSize
-    else:
-        import PyQt5.QtCore as QtCore
-        return QtCore.QSize
-
-def get_QSizePolicy():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QSizePolicy
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QSizePolicy
-
-def get_QSortFilterProxyModel():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QSortFilterProxyModel
-    else:
-        import PyQt5.QtCore as QtCore
-        return QtCore.QSortFilterProxyModel
-
-def get_QSlider():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QSlider
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QSlider
-
-def get_QSpacerItem():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QSpacerItem
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QSpacerItem
-
-def get_QSplitter():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QSplitter
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QSplitter
-
-def get_QStandardItem():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QStandardItem
-    else:
-        import PyQt5.QtGui as QtGui
-        return QtGui.QStandardItem
-
-def get_QStandardItemModel():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QStandardItemModel
-    else:
-        import PyQt5.QtGui as QtGui
-        return QtGui.QStandardItemModel    
-
-def get_QStringListModel():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QStringListModel
-    else:
-        import PyQt5.QtCore as QtCore
-        return QtCore.QStringListModel
-
-def get_QStyle():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QStyle
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QStyle
-
-def get_QStyledItemDelegate():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QStyledItemDelegate
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QStyledItemDelegate
-
-def get_QStyleFactory():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QStyleFactory
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QStyleFactory
-
-def get_QStyleOptionComboBox():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QStyleOptionComboBox
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QStyleOptionComboBox
-
-def get_QStyleOptionSlider():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QStyleOptionSlider
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QStyleOptionSlider
-
-def get_Qt():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtCore as QtCore
-        return QtCore.Qt
-    else:
-        import PyQt5.QtCore as QtCore
-        return QtCore.Qt
-
-def get_QTableWidget():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QTableWidget
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QTableWidget
-
-def get_QTableWidgetItem():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QTableWidgetItem
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QTableWidgetItem
-
-def get_QTabWidget():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QTabWidget
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QTabWidget
+        return QtCore.Signal
 
 def get_QtCore():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtCore as QtCore
-        return QtCore
-    else:
-        import PyQt5.QtCore as QtCore
-        return QtCore
-
-def get_QTextBrowser():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QTextBrowser
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QTextBrowser
-
-def get_QTextEdit():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QTextEdit
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QTextEdit
+    return _qt_module('QtCore')
 
 def get_QtGui():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui
-    else:
-        import PyQt5.QtGui as QtGui
-        return QtGui
-
-def get_QThread():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtCore as QtCore
-        return QtCore.QThread
-    else:
-        import PyQt5.QtCore as QtCore
-        return QtCore.QThread
-
-def get_QTranslator():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtCore as QtCore
-        return QtCore.QTranslator
-    else:
-        import PyQt5.QtCore as QtCore
-        return QtCore.QTranslator
-
-def get_QTreeView():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QTreeView
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QTreeView
-
-def get_QTreeWidget():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QTreeWidget
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QTreeWidget
-
-def get_QTreeWidgetItem():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QTreeWidgetItem
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QTreeWidgetItem
+    return _qt_module('QtGui')
 
 def get_QtWidgets():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
+    if _BINDING == BINDING_PYSIDE:
         return None
     else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets
-
-def get_QVBoxLayout():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QVBoxLayout
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QVBoxLayout
-
-def get_QWidget():
-    if is_ida and idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QWidget
-    else:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QWidget
+        return _qt_module('QtWidgets')
 
 
 DescendingOrder = get_DescendingOrder()
@@ -610,6 +232,7 @@ QPainter = get_QPainter()
 QPixmap = get_QPixmap()
 QPoint = get_QPoint()
 QPointF = get_QPointF()
+QPolygonF = get_QPolygonF()
 QProgressBar = get_QProgressBar()
 QPushButton = get_QPushButton()
 QRadioButton = get_QRadioButton()

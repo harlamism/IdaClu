@@ -10,17 +10,10 @@ import json
 import os
 import sys
 
-lib_qt = None
-try:
-    from PyQt5 import QtCore, QtGui, QtWidgets
-    lib_qt = "pyqt5"
-except ImportError:
-    try:
-        from PySide import QtCore, QtGui
-        from PySide import QtGui as QtWidgets
-        lib_qt = "pyside"
-    except ImportError:
-        pass
+# Qt is reached only through idaclu.qt_shims, imported further down once the
+# package path is settled. Importing PyQt5 directly here used to decide the
+# binding, but on IDA 9.2+ that merely wakes IDA's PyQt5-to-PySide6
+# deprecation shim - and the answer it produced was discarded anyway.
 
 
 # make sub-plugins discoverable
@@ -69,20 +62,30 @@ except ImportError:
         pass
 
 from idaclu.qt_shims import (
+    BINDING,
     QCoreApplication,
     QIcon,
     QMessageBox,
-    QTranslator
+    QTranslator,
+    QtCore,
+    QtGui,
+    QtWidgets
 )
 from idaclu import idaclu_gui
 from idaclu.assets import resource
 
+
+def get_qt_gen(binding):
+    # 'pyside' is Qt4; PyQt5 (Qt5) and PySide6 (Qt6) agree on every API this
+    # plugin switches on, so they share the 'pyqt5' branch everywhere.
+    return 'pyside' if binding == 'pyside' else 'pyqt5'
 
 
 class ScriptEnv():
     def __init__(self, is_ida, lib_qt):
         # generic environment
         self.is_ida = is_ida
+        self.qt_binding = BINDING
         self.lib_qt = lib_qt
         self.run_mode = 'script'
         self.dir_script = SCRIPT_DIR
@@ -120,15 +123,20 @@ class ScriptEnv():
         return "\n".join(env_repr)
 
     def get_banner(self):
-        banner = "                                      \n" \
-               + "     ____    __      ________         \n" \
-               + "    /  _/___/ /___ _/ ____/ /_  __    \n" \
-               + "    / // __  / __ `/ /   / / / / /    \n" \
-               + "  _/ // /_/ / /_/ / /___/ / /_/ /     \n" \
-               + " /___/\__,_/\__,_/\____/_/\__,_/      \n" \
-               + "         by Sergejs Harlamovs         \n" \
-               + "                                      \n"
-        return banner
+        # the art stays raw so its backslashes are literal and Python 3.12+
+        # does not warn about invalid escape sequences; the line breaks come
+        # from the join, since '\n' inside a raw string is two characters
+        art = [
+            r"                                      ",
+            r"     ____    __      ________         ",
+            r"    /  _/___/ /___ _/ ____/ /_  __    ",
+            r"    / // __  / __ `/ /   / / / / /    ",
+            r"  _/ // /_/ / /_/ / /___/ / /_/ /     ",
+            r" /___/\__,_/\__,_/\____/_/\__,_/      ",
+            r"         by Sergejs Harlamovs         ",
+            r"                                      ",
+        ]
+        return "\n".join(art) + "\n"
 
     def get_script_mode(self):  # in case of certainty of IDA environment
         mode = 'script'
@@ -192,7 +200,7 @@ class ScriptEnv():
             self.idb_path = ida_shims.get_idb_path()
             self.is_dbg = idaapi.is_debugger_on()
             # self.is_ida
-            self.lib_qt = self.lib_qt = "pyside" if self.ver_sdk < 690 else "pyqt5"
+            self.lib_qt = get_qt_gen(self.qt_binding)
             self.platform = sys.platform
             plg_dst, plg_src, plg_scope, plg_type = self.get_plugin_ort()
             self.plg_dst = plg_dst
@@ -204,7 +212,7 @@ class ScriptEnv():
             # self.ver_py
 
 def common_init():
-    env_desc = ScriptEnv(is_ida, lib_qt)
+    env_desc = ScriptEnv(is_ida, get_qt_gen(BINDING))
     return env_desc
 
 

@@ -21,6 +21,7 @@ from idaclu.qt_shims import (
     QPainter,
     QPoint,
     QPointF,
+    QPolygonF,
     QProgressBar,
     QPushButton,
     QSize,
@@ -656,10 +657,10 @@ class FrameLayout(QWidget):
             painter.begin(self)
             painter.setBrush(QColor(192, 192, 192))
             painter.setPen(QColor(64, 64, 64))
-            if self.env_desc.lib_qt == 'pyqt5':
-                painter.drawPolygon(*self._arrow)
-            else:  # 'pyside'
-                painter.drawPolygon(self._arrow)
+            # Qt6 dropped the variadic drawPolygon(point, point, ...) overload
+            # that Qt5 accepted, so pass one polygon instead; every binding
+            # takes QPolygonF built from a sequence of QPointF.
+            painter.drawPolygon(QPolygonF(self._arrow))
             painter.end()
 
 

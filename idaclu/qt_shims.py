@@ -51,6 +51,11 @@ def _detect_binding():
 
 _BINDING = _detect_binding()
 
+# Public name of the binding actually in use: 'pyside6', 'pyqt5' or 'pyside'.
+# Consumers must read this rather than guess from IDA_SDK_VERSION, which says
+# nothing about which Qt is loaded - IDA 9.2+ ships Qt6 regardless.
+BINDING = _BINDING
+
 
 def _qt_module(submodule_name):
     package_name = _PACKAGE_NAMES[_BINDING]
@@ -95,6 +100,7 @@ _CLASS_MODULES = {
     'QPixmap':               ('QtGui', 'QtGui'),
     'QPoint':                ('QtCore', 'QtCore'),
     'QPointF':               ('QtCore', 'QtCore'),
+    'QPolygonF':             ('QtGui', 'QtGui'),
     'QProgressBar':          ('QtGui', 'QtWidgets'),
     'QPushButton':           ('QtGui', 'QtWidgets'),
     'QRadioButton':          ('QtGui', 'QtWidgets'),
@@ -226,6 +232,7 @@ QPainter = get_QPainter()
 QPixmap = get_QPixmap()
 QPoint = get_QPoint()
 QPointF = get_QPointF()
+QPolygonF = get_QPolygonF()
 QProgressBar = get_QProgressBar()
 QPushButton = get_QPushButton()
 QRadioButton = get_QRadioButton()
